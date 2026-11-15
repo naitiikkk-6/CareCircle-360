@@ -7,6 +7,7 @@ CareCircle 360 is an elder-centred medication adherence and care coordination we
 ---
 
 ## 📋 Table of Contents
+
 1. [Overview](#-overview)
 2. [Features Mapped to Challenge Requirements](#-features-mapped-to-challenge-requirements)
 3. [Architecture & System Design](#-architecture--system-design)
@@ -25,9 +26,10 @@ CareCircle 360 is an elder-centred medication adherence and care coordination we
 
 ## 🌟 Overview
 
-Caring for aging loved ones presents daily friction: complicated medication schedules, forgotten doses, fragmented family communication, and inaccessible software interfaces. 
+Caring for aging loved ones presents daily friction: complicated medication schedules, forgotten doses, fragmented family communication, and inaccessible software interfaces.
 
 **CareCircle 360** solves this with:
+
 - **Elder-First Usability**: High-contrast, scalable text, screen-reader compatibility (`aria-live`), speech synthesis voice readout, and an uncluttered "Simple Mode" with an oversized "Taken" action button.
 - **Elder-Centred Autonomy**: The senior owns their Care Circle and dictates granular member visibility, editing permissions, and alert routing. Permissions are enforced server-side.
 - **Intelligent Escalation**: Multi-tier missed-dose notifications (Elder first $\to$ Caretaker $\to$ Family) with one-click signed confirmation tokens.
@@ -38,17 +40,17 @@ Caring for aging loved ones presents daily friction: complicated medication sche
 
 ## 🎯 Features Mapped to Challenge Requirements
 
-| Challenge Requirement | CareCircle 360 Implementation | Technical Details / Route |
-| :--- | :--- | :--- |
-| **Elder-Centred Autonomy & Sharing** | Elder granular sharing matrix, immediate revocation, activity audit log | `GET /api/circles/:id/permissions`, `PUT /api/circles/:id/permissions`, `server/middleware/elderPermissions.js` |
-| **Accessible & Elder-First UI** | Simple Mode, 3 text scaling tiers (`normal`, `large`, `xlarge`), high-contrast mode, reduce-motion, Web Speech voice readout | `public/index.html`, `public/app.js`, `GET/PUT /api/auth/preferences` |
-| **Medication & Dose Tracking** | Multi-time schedules, timezone-aware dosage generation, grace windows (60m), adherence % calculation | `server/services/medicationService.js`, `POST /api/medications`, `POST /api/doses/:id/status` |
-| **Appointments & Daily Care Pulse** | Chronological doctor appointments, Daily Care Pulse dashboard with plain-language status cards | `server/services/appointmentService.js`, `GET /api/appointments`, `GET /api/pulse/summary` |
-| **Email Reminders & Multi-Tier Escalation** | 15-min due-soon reminders, 60-min missed alerts, caretaker/family escalation, signed one-click confirmation tokens | `server/services/emailService.js`, `server/services/reminderScheduler.js`, `GET /api/doses/confirm-email` |
-| **Weekly Family Summary (Gemini)** | Adherence grouped by time slot (Morning, Afternoon, Evening, Night) turned into 3–5 plain sentences via Gemini 1.5 Flash | `server/services/weeklySummaryService.js`, `GET /api/pulse/weekly-summary`, safe rule-based fallback |
-| **Cloud Scheduler Integration** | 5-minute recurring cron triggers reminder checks and missed escalations with constant-time secret headers | `POST /api/cron/reminders`, header `x-cron-secret` |
-| **Health Guardian (Simulated Vitals)** | Blood pressure, blood glucose, heart rate tracker with clear simulated data warnings | `server/routes/vitals.js`, `GET/POST /api/vitals` |
-| **Judge Evaluator Demo Mode** | Pre-seeded Care Circle with Elder, Caretaker, Family accounts; one-click instant evaluator login; state reset | `POST /api/auth/demo-login`, `POST /api/auth/reset-demo`, `GET /api/auth/demo-info` |
+| Challenge Requirement                       | CareCircle 360 Implementation                                                                                                | Technical Details / Route                                                                                       |
+| :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| **Elder-Centred Autonomy & Sharing**        | Elder granular sharing matrix, immediate revocation, activity audit log                                                      | `GET /api/circles/:id/permissions`, `PUT /api/circles/:id/permissions`, `server/middleware/elderPermissions.js` |
+| **Accessible & Elder-First UI**             | Simple Mode, 3 text scaling tiers (`normal`, `large`, `xlarge`), high-contrast mode, reduce-motion, Web Speech voice readout | `public/index.html`, `public/app.js`, `GET/PUT /api/auth/preferences`                                           |
+| **Medication & Dose Tracking**              | Multi-time schedules, timezone-aware dosage generation, grace windows (60m), adherence % calculation                         | `server/services/medicationService.js`, `POST /api/medications`, `POST /api/doses/:id/status`                   |
+| **Appointments & Daily Care Pulse**         | Chronological doctor appointments, Daily Care Pulse dashboard with plain-language status cards                               | `server/services/appointmentService.js`, `GET /api/appointments`, `GET /api/pulse/summary`                      |
+| **Email Reminders & Multi-Tier Escalation** | 15-min due-soon reminders, 60-min missed alerts, caretaker/family escalation, signed one-click confirmation tokens           | `server/services/emailService.js`, `server/services/reminderScheduler.js`, `GET /api/doses/confirm-email`       |
+| **Weekly Family Summary (Gemini)**          | Adherence grouped by time slot (Morning, Afternoon, Evening, Night) turned into 3–5 plain sentences via Gemini 1.5 Flash     | `server/services/weeklySummaryService.js`, `GET /api/pulse/weekly-summary`, safe rule-based fallback            |
+| **Cloud Scheduler Integration**             | 5-minute recurring cron triggers reminder checks and missed escalations with constant-time secret headers                    | `POST /api/cron/reminders`, header `x-cron-secret`                                                              |
+| **Health Guardian (Simulated Vitals)**      | Blood pressure, blood glucose, heart rate tracker with clear simulated data warnings                                         | `server/routes/vitals.js`, `GET/POST /api/vitals`                                                               |
+| **Judge Evaluator Demo Mode**               | Pre-seeded Care Circle with Elder, Caretaker, Family accounts; one-click instant evaluator login; state reset                | `POST /api/auth/demo-login`, `POST /api/auth/reset-demo`, `GET /api/auth/demo-info`                             |
 
 ---
 
@@ -95,26 +97,28 @@ Caring for aging loved ones presents daily friction: complicated medication sche
 ## ☁️ Google Services Used & Why
 
 1. **Google Cloud Run**:
-   - *Why*: Provides a production-grade, secure, serverless container environment with zero idle cost, automatic HTTPS certificate provisioning, instant scaling, and native VPC/IAM integration.
+   - _Why_: Provides a production-grade, secure, serverless container environment with zero idle cost, automatic HTTPS certificate provisioning, instant scaling, and native VPC/IAM integration.
 2. **Google Cloud Scheduler**:
-   - *Why*: Reliably invokes the cron endpoint every 5 minutes to trigger time-critical medication reminders, appointment alerts, and escalation workflows without keeping costly background daemons alive.
+   - _Why_: Reliably invokes the cron endpoint every 5 minutes to trigger time-critical medication reminders, appointment alerts, and escalation workflows without keeping costly background daemons alive.
 3. **Google Gemini API (`gemini-1.5-flash`)**:
-   - *Why*: Powers MediGuide packaging extraction and transforms complex weekly adherence numbers into friendly, empathetic, 3–5 sentence family summaries. Offers sub-second latency and zero medical risk prompt bounding.
+   - _Why_: Powers MediGuide packaging extraction and transforms complex weekly adherence numbers into friendly, empathetic, 3–5 sentence family summaries. Offers sub-second latency and zero medical risk prompt bounding.
 4. **Google Cloud Secret Manager**:
-   - *Why*: Safely stores environment secrets (`APP_SECRET`, `CRON_SECRET`, `GEMINI_API_KEY`, `GMAIL_APP_PASSWORD`) decoupled from code and container images.
+   - _Why_: Safely stores environment secrets (`APP_SECRET`, `CRON_SECRET`, `GEMINI_API_KEY`, `GMAIL_APP_PASSWORD`) decoupled from code and container images.
 5. **Firebase / Google Cloud Firestore**:
-   - *Why*: Document store for real-time synchronization, structured subcollections (medications, doses, appointments, vitals, audit logs), and enterprise security rules.
+   - _Why_: Document store for real-time synchronization, structured subcollections (medications, doses, appointments, vitals, audit logs), and enterprise security rules.
 
 ---
 
 ## 💻 Local Setup Guide
 
 ### 1. Prerequisites
+
 - **Node.js** 20.x or higher
 - **npm** 9.x or higher
 - Git
 
 ### 2. Clone and Install Dependencies
+
 ```bash
 git clone <repository-url>
 cd carecircle-360
@@ -122,11 +126,15 @@ npm install
 ```
 
 ### 3. Environment Configuration
+
 Copy the sample environment configuration file:
+
 ```bash
 cp .env.example .env
 ```
+
 Open `.env` and verify or set the variables:
+
 ```ini
 PORT=8080
 NODE_ENV=development
@@ -140,6 +148,7 @@ SCHEDULER_SECRET=carecircle-scheduler-secret-auth-key-here
 ```
 
 ### 4. Start the Application
+
 ```bash
 # Production mode
 npm start
@@ -147,7 +156,9 @@ npm start
 # Development mode (with live reload)
 npm run dev
 ```
+
 Open your browser and navigate to:
+
 - **Application UI**: [http://localhost:8080](http://localhost:8080)
 - **Health Check**: [http://localhost:8080/health](http://localhost:8080/health)
 
@@ -188,13 +199,17 @@ CareCircle 360 uses Firebase Admin SDK on the server and enforces strict databas
 CareCircle 360 uses Nodemailer with support for Gmail SMTP and a safe local mock mode:
 
 ### Safe Mock Mode (Default for Local Dev & Tests)
+
 ```ini
 EMAIL_MOCK_MODE=true
 ```
+
 When enabled, emails are logged to the console and stored in memory for programmatic test assertions without sending external network requests.
 
 ### Production Live SMTP Configuration
+
 To send live emails using Gmail:
+
 1. Enable **2-Step Verification** on your Google Account.
 2. Generate an **App Password**: [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
 3. Set your credentials in `.env` (or Google Secret Manager):
@@ -213,6 +228,7 @@ To send live emails using Gmail:
 ## 🚀 Google Cloud Run & Cloud Scheduler Deployment
 
 ### Step 1: Store Production Secrets in Secret Manager
+
 ```bash
 # Enable required Google Cloud APIs
 gcloud services enable run.googleapis.com cloudscheduler.googleapis.com secretmanager.googleapis.com
@@ -225,6 +241,7 @@ echo -n "your-gmail-16-char-app-password" | gcloud secrets create carecircle-gma
 ```
 
 ### Step 2: Deploy Container to Cloud Run
+
 ```bash
 gcloud run deploy carecircle-360 \
   --source . \
@@ -236,7 +253,9 @@ gcloud run deploy carecircle-360 \
 ```
 
 ### Step 3: Configure Cloud Scheduler Job (Every 5 Minutes)
+
 Retrieve your Cloud Run URL (`https://carecircle-360-xxxxxx.a.run.app`) and create the scheduler:
+
 ```bash
 gcloud scheduler jobs create http carecircle-cron-reminders \
   --location=asia-south1 \
@@ -261,6 +280,7 @@ npm test
 ```
 
 ### Test Suite Summary:
+
 - **`auth.test.js`**: Account provisioning, JWT validation, Care Circle creation & joining.
 - **`auth_access_security.test.js`**: Boundary validation, cross-circle access rejection, rate limiters.
 - **`elder_permissions_matrix.test.js`**: Server-side role permissions, dynamic elder overrides.
@@ -288,7 +308,7 @@ npm test
 
 ## 🔬 Simulated Data Disclosure
 
-- **Health Guardian Vitals**: All blood pressure, blood glucose, and heart rate telemetry displayed in the application are synthetic demonstrations. The UI explicitly flags this with a visual badge: *"Simulated Demonstration Data — Not Real Medical Telemetry"*.
+- **Health Guardian Vitals**: All blood pressure, blood glucose, and heart rate telemetry displayed in the application are synthetic demonstrations. The UI explicitly flags this with a visual badge: _"Simulated Demonstration Data — Not Real Medical Telemetry"_.
 - **Demo Mode**: The pre-seeded evaluator Care Circle (Ramesh Patel, Sunita, Amit) consists entirely of fictitious demonstration data and mock reminders. No real personal identifying information (PII) or protected health information (PHI) is present.
 
 ---
@@ -305,11 +325,12 @@ npm test
 
 Evaluators can test the live application instantly without registration using one-click buttons on the login page:
 
-| Role | Demo Email | Demo Password | Pre-configured Privileges |
-| :--- | :--- | :--- | :--- |
-| **Elder** | `ramesh.elder@carecircle.demo` | `DemoElder123!` | Circle Owner, Simple Mode, Full Permission Matrix Control |
-| **Primary Caretaker** | `sunita.caretaker@carecircle.demo` | `DemoCare123!` | Medication Editor, Appointment Manager, Immediate Escalation Contact |
-| **Family Member** | `amit.family@carecircle.demo` | `DemoFamily123!` | Read-Only Pulse & Weekly Digest (as permitted by Elder) |
+| Role                  | Demo Email                         | Demo Password    | Pre-configured Privileges                                            |
+| :-------------------- | :--------------------------------- | :--------------- | :------------------------------------------------------------------- |
+| **Elder**             | `ramesh.elder@carecircle.demo`     | `DemoElder123!`  | Circle Owner, Simple Mode, Full Permission Matrix Control            |
+| **Primary Caretaker** | `sunita.caretaker@carecircle.demo` | `DemoCare123!`   | Medication Editor, Appointment Manager, Immediate Escalation Contact |
+| **Family Member**     | `amit.family@carecircle.demo`      | `DemoFamily123!` | Read-Only Pulse & Weekly Digest (as permitted by Elder)              |
 
 ---
-*Built with ❤️ for Catalyst PromptWars.*
+
+_Built with ❤️ for Catalyst PromptWars._

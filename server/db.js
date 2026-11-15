@@ -76,7 +76,7 @@ class InMemoryQuery {
     });
 
     for (const filter of this._filters) {
-      docs = docs.filter(doc => {
+      docs = docs.filter((doc) => {
         const val = doc.data()?.[filter.field];
         if (filter.op === '==' || filter.op === '===') {
           return val === filter.value;
@@ -180,10 +180,12 @@ export function getDb() {
       }
       dbInstance = admin.firestore();
       isRealFirestore = true;
-      console.log('Connected to Google Cloud Firestore with project:', config.firebaseProjectId);
       return dbInstance;
     } catch (err) {
-      console.warn('Firebase Admin initialization skipped or failed; falling back to in-memory Firestore engine:', err.message);
+      console.warn(
+        'Firebase Admin initialization skipped or failed; falling back to in-memory Firestore engine:',
+        err.message
+      );
     }
   }
 

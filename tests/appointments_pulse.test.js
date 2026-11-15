@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import app from '../server/app.js';
-import { getDb } from '../server/db.js';
 
 test('Appointments and Daily Care Pulse Summary Suite', async (t) => {
   let elderToken = '';
@@ -17,7 +16,9 @@ test('Appointments and Daily Care Pulse Summary Suite', async (t) => {
     const elderLogin = await request(app).post('/api/auth/demo-login').send({ persona: 'elder' });
     elderToken = elderLogin.body.token;
 
-    const caretakerLogin = await request(app).post('/api/auth/demo-login').send({ persona: 'caretaker' });
+    const caretakerLogin = await request(app)
+      .post('/api/auth/demo-login')
+      .send({ persona: 'caretaker' });
     caretakerToken = caretakerLogin.body.token;
 
     const familyLogin = await request(app).post('/api/auth/demo-login').send({ persona: 'family' });
@@ -174,9 +175,9 @@ test('Appointments and Daily Care Pulse Summary Suite', async (t) => {
     assert.ok(listRes.body.appointments.length >= 3);
 
     const appts = listRes.body.appointments;
-    const idxB = appts.findIndex(a => a.id === apptId2);
-    const idxA = appts.findIndex(a => a.id === apptId1);
-    const idxC = appts.findIndex(a => a.id === apptId3);
+    const idxB = appts.findIndex((a) => a.id === apptId2);
+    const idxA = appts.findIndex((a) => a.id === apptId1);
+    const idxC = appts.findIndex((a) => a.id === apptId3);
 
     assert.ok(idxB < idxA, 'Dr. Bhatt (1 day) should appear before Dr. Avasthi (3 days)');
     assert.ok(idxA < idxC, 'Dr. Avasthi (3 days) should appear before Dr. Chawla (5 days)');
@@ -346,7 +347,7 @@ test('Appointments and Daily Care Pulse Summary Suite', async (t) => {
 
     // Verify active alert for missed dose was generated
     assert.ok(Array.isArray(updatedPulse.activeAlerts));
-    const missedAlert = updatedPulse.activeAlerts.find(a => a.type === 'missed-dose');
+    const missedAlert = updatedPulse.activeAlerts.find((a) => a.type === 'missed-dose');
     assert.ok(missedAlert, 'Active alert for missed dose must be present');
     assert.equal(missedAlert.badgeText, '[ACTION REQUIRED: MISSED DOSE]');
     assert.match(missedAlert.message, /Missed: Metformin/i);

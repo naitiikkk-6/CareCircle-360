@@ -134,7 +134,7 @@ class CarePulseManager {
     const taken = this.pulse.takenCount ?? this.pulse.taken ?? 0;
     const pending = this.pulse.pendingCount ?? this.pulse.pending ?? 0;
     const missed = this.pulse.missedCount ?? this.pulse.missed ?? 0;
-    const total = this.pulse.totalDosesToday ?? this.pulse.totalDoses ?? (taken + pending + missed);
+    const total = this.pulse.totalDosesToday ?? this.pulse.totalDoses ?? taken + pending + missed;
 
     // 1. Adherence metrics & Progress bar
     if (adherenceEl) adherenceEl.textContent = `${rate}%`;
@@ -148,7 +148,10 @@ class CarePulseManager {
 
     // 2. Status badge (text label, never color alone)
     if (statusTextEl) {
-      statusTextEl.textContent = this.pulse.statusTextBadge || this.pulse.statusText || (rate >= 80 ? '[EXCELLENT: ON TRACK]' : '[ATTENTION REQUIRED]');
+      statusTextEl.textContent =
+        this.pulse.statusTextBadge ||
+        this.pulse.statusText ||
+        (rate >= 80 ? '[EXCELLENT: ON TRACK]' : '[ATTENTION REQUIRED]');
     }
 
     // 3. Stat counters
@@ -158,15 +161,21 @@ class CarePulseManager {
 
     // 4. Completion indicator (e.g. "3 of 5 doses taken (60% complete)")
     if (completionEl) {
-      completionEl.textContent = this.pulse.completionText || (total > 0
-        ? `${taken} of ${total} doses taken (${Math.round((taken / total) * 100)}% complete)`
-        : 'No doses scheduled for today');
+      completionEl.textContent =
+        this.pulse.completionText ||
+        (total > 0
+          ? `${taken} of ${total} doses taken (${Math.round((taken / total) * 100)}% complete)`
+          : 'No doses scheduled for today');
     }
 
     if (plainMessageEl) {
-      plainMessageEl.textContent = this.pulse.plainStatusMessage || (missed > 0
-        ? `${missed} dose was missed today. Follow-up is recommended.`
-        : (pending > 0 ? `${pending} dose remaining to be taken today.` : 'All scheduled doses taken for today.'));
+      plainMessageEl.textContent =
+        this.pulse.plainStatusMessage ||
+        (missed > 0
+          ? `${missed} dose was missed today. Follow-up is recommended.`
+          : pending > 0
+            ? `${pending} dose remaining to be taken today.`
+            : 'All scheduled doses taken for today.');
     }
 
     // 5. Next upcoming dose
@@ -192,7 +201,9 @@ class CarePulseManager {
         alertsContainer.classList.add('hidden');
       } else {
         alertsContainer.classList.remove('hidden');
-        alertsContainer.innerHTML = alerts.map(alert => `
+        alertsContainer.innerHTML = alerts
+          .map(
+            (alert) => `
           <div class="alert-box alert-${alert.level || 'warning'}" role="alert">
             <span class="alert-badge-text">${escapeHtml(alert.badgeText)}</span>
             <div class="alert-content">
@@ -200,7 +211,9 @@ class CarePulseManager {
               <p>${escapeHtml(alert.message)}</p>
             </div>
           </div>
-        `).join('');
+        `
+          )
+          .join('');
       }
     }
 
@@ -208,17 +221,21 @@ class CarePulseManager {
     if (apptsListEl) {
       const appts = this.pulse.upcomingAppointments || [];
       if (appts.length === 0) {
-        apptsListEl.innerHTML = '<li class="empty-quicklist text-muted">No upcoming doctor visits in the next few days.</li>';
+        apptsListEl.innerHTML =
+          '<li class="empty-quicklist text-muted">No upcoming doctor visits in the next few days.</li>';
       } else {
-        apptsListEl.innerHTML = appts.map(appt => {
-          const d = new Date(appt.datetime);
-          const dateStr = isNaN(d.getTime()) ? appt.datetime : d.toLocaleDateString('en-IN', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-          return `
+        apptsListEl.innerHTML = appts
+          .map((appt) => {
+            const d = new Date(appt.datetime);
+            const dateStr = isNaN(d.getTime())
+              ? appt.datetime
+              : d.toLocaleDateString('en-IN', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+            return `
             <li class="quick-appt-item">
               <span class="quick-appt-time">📅 ${escapeHtml(dateStr)}</span>
               <strong class="quick-appt-doc">Dr. ${escapeHtml(appt.doctorName)}</strong>
@@ -226,7 +243,8 @@ class CarePulseManager {
               <span class="quick-appt-place">📍 ${escapeHtml(appt.place || appt.location || '')}</span>
             </li>
           `;
-        }).join('');
+          })
+          .join('');
       }
     }
   }
@@ -239,8 +257,11 @@ class CarePulseManager {
         circleId: circle.activeCircle.id
       });
       if (res.success) {
-        const { upcomingRemindersSent, missedEscalationsSent, appointmentRemindersSent } = res.result;
-        alert(`Scheduler Cycle Completed:\n- Upcoming dose reminders: ${upcomingRemindersSent}\n- Missed dose escalations: ${missedEscalationsSent}\n- Appointment reminders: ${appointmentRemindersSent}`);
+        const { upcomingRemindersSent, missedEscalationsSent, appointmentRemindersSent } =
+          res.result;
+        alert(
+          `Scheduler Cycle Completed:\n- Upcoming dose reminders: ${upcomingRemindersSent}\n- Missed dose escalations: ${missedEscalationsSent}\n- Appointment reminders: ${appointmentRemindersSent}`
+        );
         await this.loadPulse();
         window.dispatchEvent(new CustomEvent('doses:changed'));
       }
@@ -273,9 +294,10 @@ class CarePulseManager {
 
       listEl.innerHTML = '';
       if (!res.logs || res.logs.length === 0) {
-        listEl.innerHTML = '<li class="empty-state">No email notifications sent yet in this session. Trigger a reminder or log a dose to see simulated email logs.</li>';
+        listEl.innerHTML =
+          '<li class="empty-state">No email notifications sent yet in this session. Trigger a reminder or log a dose to see simulated email logs.</li>';
       } else {
-        res.logs.forEach(log => {
+        res.logs.forEach((log) => {
           const li = document.createElement('li');
           li.className = 'audit-log-item';
           const time = new Date(log.timestamp).toLocaleTimeString();

@@ -22,9 +22,9 @@ class DoseTracker {
 
   bindEvents() {
     // Filter buttons (All, Pending, Taken, Missed)
-    document.querySelectorAll('.filter-btn').forEach(btn => {
+    document.querySelectorAll('.filter-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
         e.currentTarget.classList.add('active');
         this.currentFilter = e.currentTarget.getAttribute('data-filter');
         this.renderDoseBoard();
@@ -54,7 +54,8 @@ class DoseTracker {
     if (btnToggleHistory) {
       btnToggleHistory.addEventListener('click', () => {
         this.currentViewMode = this.currentViewMode === 'today' ? 'history' : 'today';
-        btnToggleHistory.textContent = this.currentViewMode === 'today' ? '📊 View 30-Day History' : '💊 Back to Daily Doses';
+        btnToggleHistory.textContent =
+          this.currentViewMode === 'today' ? '📊 View 30-Day History' : '💊 Back to Daily Doses';
         this.updateViewMode();
       });
     }
@@ -124,7 +125,7 @@ class DoseTracker {
 
     container.innerHTML = '';
 
-    const filtered = this.doses.filter(d => {
+    const filtered = this.doses.filter((d) => {
       if (this.currentFilter === 'all') return true;
       return d.status.toLowerCase() === this.currentFilter.toLowerCase();
     });
@@ -140,7 +141,7 @@ class DoseTracker {
 
     const canLog = this.canUserLogDoses();
 
-    filtered.forEach(dose => {
+    filtered.forEach((dose) => {
       const card = document.createElement('div');
       card.className = `dose-card status-${dose.status.toLowerCase()}`;
       card.setAttribute('data-status', dose.status);
@@ -151,12 +152,15 @@ class DoseTracker {
         Missed: '⚠️ Missed'
       };
 
-      const sourceBadgeClass = dose.sourceLabel === 'From the packaging' ? 'badge-verified' : 'badge-unverified';
+      const sourceBadgeClass =
+        dose.sourceLabel === 'From the packaging' ? 'badge-verified' : 'badge-unverified';
 
       // Audit info formatting
       let auditHtml = '';
       if (dose.loggedBy) {
-        const timeStr = dose.loggedAt ? new Date(dose.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const timeStr = dose.loggedAt
+          ? new Date(dose.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '';
         auditHtml = `
           <div class="dose-audit-info">
             <small>Updated by <strong>${escapeHtml(dose.loggedBy.name)}</strong> (${escapeHtml(dose.loggedBy.role)}) at ${timeStr}</small>
@@ -176,11 +180,15 @@ class DoseTracker {
           <span class="med-form-pill">${escapeHtml(dose.form || 'Tablet')}</span>
           <h3 class="dose-med-name">${escapeHtml(dose.medicineName)}</h3>
           <p class="dose-dosage-text">Strength: <strong>${escapeHtml(dose.strength || dose.dosage || 'Standard')}</strong></p>
-          ${dose.instructions ? `
+          ${
+            dose.instructions
+              ? `
             <div class="dose-instructions-box">
               <small>Instructions: ${escapeHtml(dose.instructions)}</small>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
           <span class="source-badge ${sourceBadgeClass}">
             ${escapeHtml(dose.sourceLabel || 'From the packaging')}
           </span>
@@ -188,21 +196,29 @@ class DoseTracker {
         </div>
 
         <div class="dose-actions-column">
-          ${canLog ? `
+          ${
+            canLog
+              ? `
             <button class="btn btn-take btn-dose-action btn-large-touch" data-dose-id="${dose.id}" data-action="Taken" aria-label="Mark ${escapeHtml(dose.medicineName)} as Taken">
               ✓ Mark Taken
             </button>
             <button class="btn btn-miss btn-dose-action" data-dose-id="${dose.id}" data-action="Missed" aria-label="Mark ${escapeHtml(dose.medicineName)} as Missed">
               ✕ Missed
             </button>
-            ${dose.status !== 'Pending' ? `
+            ${
+              dose.status !== 'Pending'
+                ? `
               <button class="btn btn-reset btn-dose-action" data-dose-id="${dose.id}" data-action="Pending" aria-label="Reset ${escapeHtml(dose.medicineName)} to Pending">
                 ↺ Reset
               </button>
-            ` : ''}
-          ` : `
+            `
+                : ''
+            }
+          `
+              : `
             <span class="permission-notice">View-only role</span>
-          `}
+          `
+          }
         </div>
       `;
 
@@ -210,7 +226,7 @@ class DoseTracker {
     });
 
     // Attach listeners
-    container.querySelectorAll('.btn-dose-action').forEach(btn => {
+    container.querySelectorAll('.btn-dose-action').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         const doseId = e.currentTarget.getAttribute('data-dose-id');
         const newStatus = e.currentTarget.getAttribute('data-action');
@@ -238,9 +254,10 @@ class DoseTracker {
       const missed = this.historyData.missedDoses || [];
 
       if (missed.length === 0) {
-        missedListEl.innerHTML = '<li class="empty-state">🎉 Outstanding! No missed doses recorded in the last 30 days.</li>';
+        missedListEl.innerHTML =
+          '<li class="empty-state">🎉 Outstanding! No missed doses recorded in the last 30 days.</li>';
       } else {
-        missed.forEach(dose => {
+        missed.forEach((dose) => {
           const li = document.createElement('li');
           li.className = 'missed-dose-item';
           li.innerHTML = `
@@ -269,9 +286,10 @@ class DoseTracker {
 
       if (res.success) {
         const medName = res.dose?.medicineName || 'Medication';
-        const announcement = status === 'Taken'
-          ? `Success: ${medName} marked as Taken.`
-          : `Notice: ${medName} recorded as ${status}.`;
+        const announcement =
+          status === 'Taken'
+            ? `Success: ${medName} marked as Taken.`
+            : `Notice: ${medName} recorded as ${status}.`;
         a11y.announce(announcement, 'assertive');
         if (status === 'Taken' && a11y.voiceEnabled) {
           a11y.speak(`${medName} marked as taken.`);

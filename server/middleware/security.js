@@ -21,7 +21,8 @@ export const passcodeJoinLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    error: 'Too many join attempts. For security reasons, please wait 10 minutes before trying again.'
+    error:
+      'Too many join attempts. For security reasons, please wait 10 minutes before trying again.'
   }
 });
 
@@ -43,9 +44,9 @@ export const helmetConfig = helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
       connectSrc: ["'self'"]
     }
   },

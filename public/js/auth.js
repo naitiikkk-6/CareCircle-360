@@ -9,8 +9,10 @@ async function setupFirebaseAuth() {
   try {
     const configRes = await api.get('/api/auth/config');
     if (configRes.success && configRes.firebase?.isConfigured) {
-      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js');
-      const { getAuth } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
+      const { initializeApp } =
+        await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js');
+      const { getAuth } =
+        await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
 
       const app = initializeApp({
         apiKey: configRes.firebase.apiKey,
@@ -20,10 +22,12 @@ async function setupFirebaseAuth() {
 
       firebaseAuth = getAuth(app);
       isFirebaseInitialized = true;
-      console.log('Firebase Auth Web SDK initialized successfully via CDN.');
     }
   } catch (err) {
-    console.info('Firebase Auth CDN initialization deferred; using backend authentication service:', err.message);
+    console.info(
+      'Firebase Auth CDN initialization deferred; using backend authentication service:',
+      err.message
+    );
   }
 }
 
@@ -87,7 +91,7 @@ class AuthManager {
     }
 
     // Fast Demo Personas
-    document.querySelectorAll('[data-persona]').forEach(btn => {
+    document.querySelectorAll('[data-persona]').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         const persona = e.currentTarget.getAttribute('data-persona');
         await this.loginDemoPersona(persona);
@@ -126,7 +130,8 @@ class AuthManager {
     // Try Firebase Web SDK if initialized
     if (isFirebaseInitialized && firebaseAuth) {
       try {
-        const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
+        const { signInWithEmailAndPassword } =
+          await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
         const userCred = await signInWithEmailAndPassword(firebaseAuth, email, password);
         const idToken = await userCred.user.getIdToken();
         const userObj = {
@@ -159,7 +164,8 @@ class AuthManager {
     // Try Firebase Web SDK if initialized
     if (isFirebaseInitialized && firebaseAuth) {
       try {
-        const { createUserWithEmailAndPassword, updateProfile } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
+        const { createUserWithEmailAndPassword, updateProfile } =
+          await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
         const userCred = await createUserWithEmailAndPassword(firebaseAuth, email, password);
         if (name) {
           await updateProfile(userCred.user, { displayName: name });

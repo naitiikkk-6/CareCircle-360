@@ -1,4 +1,5 @@
 import { getDb } from '../db.js';
+import { ROLES } from '../constants.js';
 
 /**
  * Middleware to verify circle membership, resolve user role, and enforce instant revocation.
@@ -6,7 +7,12 @@ import { getDb } from '../db.js';
  */
 export async function requireCircleAccess(req, res, next) {
   try {
-    const circleId = req.params.circleId || req.body?.circleId || req.query?.circleId || req.headers['x-circle-id'] || req.headers['circle-id'];
+    const circleId =
+      req.params.circleId ||
+      req.body?.circleId ||
+      req.query?.circleId ||
+      req.headers['x-circle-id'] ||
+      req.headers['circle-id'];
     if (!circleId) {
       return res.status(400).json({
         success: false,
@@ -30,7 +36,7 @@ export async function requireCircleAccess(req, res, next) {
     // Check if user is elder (circle owner)
     if (circle.elderUid === uid) {
       req.circle = circle;
-      req.userRole = 'elder';
+      req.userRole = ROLES.ELDER;
       req.isElder = true;
       req.memberPermissions = {
         canViewMedicines: true,
@@ -42,7 +48,7 @@ export async function requireCircleAccess(req, res, next) {
         canEditAppointments: true
       };
       req.membership = {
-        role: 'elder',
+        role: ROLES.ELDER,
         name: circle.elderName || req.user.name,
         email: circle.elderEmail || req.user.email,
         uid
@@ -51,7 +57,7 @@ export async function requireCircleAccess(req, res, next) {
     }
 
     // Check members list (Caretaker or Family)
-    const member = (circle.members || []).find(m => m.uid === uid);
+    const member = (circle.members || []).find((m) => m.uid === uid);
     if (!member) {
       return res.status(403).json({
         success: false,
@@ -63,7 +69,8 @@ export async function requireCircleAccess(req, res, next) {
     if (member.isRevoked) {
       return res.status(403).json({
         success: false,
-        error: 'Access denied: Your access to this Care Circle has been revoked by the circle owner.'
+        error:
+          'Access denied: Your access to this Care Circle has been revoked by the circle owner.'
       });
     }
 
@@ -87,7 +94,7 @@ export async function requireCircleAccess(req, res, next) {
  * Middleware ensuring only the Elder (circle owner) can perform the action.
  */
 export function requireElderOnly(req, res, next) {
-  if (req.userRole !== 'elder') {
+  if (req.userRole !== ROLES.ELDER) {
     return res.status(403).json({
       success: false,
       error: 'Permission denied: This action requires Elder (circle owner) authority.'
@@ -100,7 +107,7 @@ export function requireElderOnly(req, res, next) {
  * Middleware ensuring user is Elder or Caretaker (Family blocked).
  */
 export function requireCaretakerOrElder(req, res, next) {
-  if (req.userRole === 'elder' || req.userRole === 'caretaker') {
+  if (req.userRole === ROLES.ELDER || req.userRole === ROLES.CARETAKER) {
     return next();
   }
   return res.status(403).json({
@@ -114,12 +121,13 @@ export function requireCaretakerOrElder(req, res, next) {
  * Evaluates member-level sharing settings.
  */
 export function requireViewMedicinesPermission(req, res, next) {
-  if (req.userRole === 'elder') return next();
+  if (req.userRole === ROLES.ELDER) return next();
 
   if (req.memberPermissions?.canViewMedicines === false) {
     return res.status(403).json({
       success: false,
-      error: 'Permission denied: You do not have permission to view medications in this Care Circle.'
+      error:
+        'Permission denied: You do not have permission to view medications in this Care Circle.'
     });
   }
 
@@ -131,29 +139,31 @@ export function requireViewMedicinesPermission(req, res, next) {
  * Evaluates member-level permissions first, then falls back to circle sharing defaults.
  */
 export function requireMedicationManagePermission(req, res, next) {
-  if (req.userRole === 'elder') return next();
+  if (req.userRole === ROLES.ELDER) return next();
 
   // Member-level override
   if (req.memberPermissions?.canEditMedicines !== undefined) {
     if (req.memberPermissions.canEditMedicines === true) return next();
     return res.status(403).json({
       success: false,
-      error: 'Permission denied: You do not have permission to add or modify medications in this Care Circle.'
+      error:
+        'Permission denied: You do not have permission to add or modify medications in this Care Circle.'
     });
   }
 
   // Circle-level fallback
   const permissions = req.circle.permissions || {};
-  if (req.userRole === 'caretaker' && permissions.caretakerCanManageMeds !== false) {
+  if (req.userRole === ROLES.CARETAKER && permissions.caretakerCanManageMeds !== false) {
     return next();
   }
-  if (req.userRole === 'family' && permissions.familyCanManageMeds === true) {
+  if (req.userRole === ROLES.FAMILY && permissions.familyCanManageMeds === true) {
     return next();
   }
 
   return res.status(403).json({
     success: false,
-    error: 'Permission denied: You do not have permission to add or modify medications in this Care Circle.'
+    error:
+      'Permission denied: You do not have permission to add or modify medications in this Care Circle.'
   });
 }
 
@@ -161,12 +171,13 @@ export function requireMedicationManagePermission(req, res, next) {
  * Permission to view doses & adherence pulse.
  */
 export function requireViewDosesPermission(req, res, next) {
-  if (req.userRole === 'elder') return next();
+  if (req.userRole === ROLES.ELDER) return next();
 
   if (req.memberPermissions?.canViewDoses === false) {
     return res.status(403).json({
       success: false,
-      error: 'Permission denied: You do not have permission to view dose tracking records in this Care Circle.'
+      error:
+        'Permission denied: You do not have permission to view dose tracking records in this Care Circle.'
     });
   }
 
@@ -178,7 +189,7 @@ export function requireViewDosesPermission(req, res, next) {
  * Evaluates member-level permissions first, then falls back to circle sharing defaults.
  */
 export function requireDoseLogPermission(req, res, next) {
-  if (req.userRole === 'elder') return next();
+  if (req.userRole === ROLES.ELDER) return next();
 
   // Member-level override
   if (req.memberPermissions?.canEditDoses !== undefined) {
@@ -191,10 +202,10 @@ export function requireDoseLogPermission(req, res, next) {
 
   // Circle-level fallback
   const permissions = req.circle.permissions || {};
-  if (req.userRole === 'caretaker' && permissions.caretakerCanLogDoses !== false) {
+  if (req.userRole === ROLES.CARETAKER && permissions.caretakerCanLogDoses !== false) {
     return next();
   }
-  if (req.userRole === 'family' && permissions.familyCanLogDoses === true) {
+  if (req.userRole === ROLES.FAMILY && permissions.familyCanLogDoses === true) {
     return next();
   }
 
@@ -208,7 +219,7 @@ export function requireDoseLogPermission(req, res, next) {
  * Permission to view appointments.
  */
 export function requireViewAppointmentsPermission(req, res, next) {
-  if (req.userRole === 'elder') return next();
+  if (req.userRole === ROLES.ELDER) return next();
 
   if (req.memberPermissions?.canViewAppointments === false) {
     return res.status(403).json({
@@ -225,7 +236,7 @@ export function requireViewAppointmentsPermission(req, res, next) {
  * Evaluates member-level permissions first, then falls back to circle sharing defaults.
  */
 export function requireAppointmentManagePermission(req, res, next) {
-  if (req.userRole === 'elder') return next();
+  if (req.userRole === ROLES.ELDER) return next();
 
   // Member-level override
   if (req.memberPermissions?.canEditAppointments !== undefined) {
@@ -238,10 +249,10 @@ export function requireAppointmentManagePermission(req, res, next) {
 
   // Circle-level fallback
   const permissions = req.circle.permissions || {};
-  if (req.userRole === 'caretaker' && permissions.caretakerCanManageAppointments !== false) {
+  if (req.userRole === ROLES.CARETAKER && permissions.caretakerCanManageAppointments !== false) {
     return next();
   }
-  if (req.userRole === 'family' && permissions.familyCanManageAppointments === true) {
+  if (req.userRole === ROLES.FAMILY && permissions.familyCanManageAppointments === true) {
     return next();
   }
 
@@ -255,7 +266,7 @@ export function requireAppointmentManagePermission(req, res, next) {
  * Permission to view health readings (Health Guardian).
  */
 export function requireViewReadingsPermission(req, res, next) {
-  if (req.userRole === 'elder') return next();
+  if (req.userRole === ROLES.ELDER) return next();
 
   if (req.memberPermissions?.canViewReadings === false) {
     return res.status(403).json({
@@ -265,7 +276,7 @@ export function requireViewReadingsPermission(req, res, next) {
   }
 
   const permissions = req.circle.permissions || {};
-  if (req.userRole === 'family' && permissions.familyCanViewVitals === false) {
+  if (req.userRole === ROLES.FAMILY && permissions.familyCanViewVitals === false) {
     return res.status(403).json({
       success: false,
       error: 'Permission denied: You do not have permission to view simulated health readings.'

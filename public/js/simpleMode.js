@@ -94,7 +94,7 @@ class ElderSimpleModeManager {
       simpleView?.classList.remove('hidden');
       pulseHero?.classList.add('hidden');
       tabsNav?.classList.add('hidden');
-      tabPanels.forEach(p => p.classList.add('hidden'));
+      tabPanels.forEach((p) => p.classList.add('hidden'));
 
       if (toggleBtn) {
         toggleBtn.setAttribute('aria-pressed', 'true');
@@ -111,9 +111,10 @@ class ElderSimpleModeManager {
       tabsNav?.classList.remove('hidden');
 
       // Restore first active tab panel
-      const activeTab = document.querySelector('.nav-tab.active') || document.querySelector('.nav-tab');
+      const activeTab =
+        document.querySelector('.nav-tab.active') || document.querySelector('.nav-tab');
       const targetPanelId = activeTab?.getAttribute('data-target') || 'panel-doses';
-      tabPanels.forEach(p => {
+      tabPanels.forEach((p) => {
         if (p.id === targetPanelId) p.classList.remove('hidden');
         else p.classList.add('hidden');
       });
@@ -142,7 +143,7 @@ class ElderSimpleModeManager {
       // 2. Fetch upcoming appointments
       const apptsRes = await api.get('/api/appointments', { circleId: circle.activeCircle.id });
       const appts = apptsRes.appointments || [];
-      this.nextAppointment = appts.find(a => a.status === 'Upcoming') || null;
+      this.nextAppointment = appts.find((a) => a.status === 'Upcoming') || null;
 
       this.renderSimpleMode();
     } catch (err) {
@@ -152,7 +153,7 @@ class ElderSimpleModeManager {
 
   renderSimpleMode() {
     // 1. Determine next pending medicine
-    const pendingDoses = this.todayDoses.filter(d => d.status === 'Pending');
+    const pendingDoses = this.todayDoses.filter((d) => d.status === 'Pending');
     this.currentPendingDose = pendingDoses.length > 0 ? pendingDoses[0] : null;
 
     const medNameEl = document.getElementById('simple-next-med-name');
@@ -194,15 +195,21 @@ class ElderSimpleModeManager {
     const checklistEl = document.getElementById('simple-today-checklist');
     if (checklistEl) {
       if (this.todayDoses.length === 0) {
-        checklistEl.innerHTML = '<li class="empty-state"><p>No medications scheduled for today.</p></li>';
+        checklistEl.innerHTML =
+          '<li class="empty-state"><p>No medications scheduled for today.</p></li>';
       } else {
-        checklistEl.innerHTML = this.todayDoses.map(dose => {
-          const isTaken = dose.status === 'Taken';
-          const isMissed = dose.status === 'Missed';
-          const badgeClass = isTaken ? 'badge-taken' : isMissed ? 'badge-missed' : 'badge-pending';
-          const statusText = `[STATUS: ${dose.status.toUpperCase()}]`;
+        checklistEl.innerHTML = this.todayDoses
+          .map((dose) => {
+            const isTaken = dose.status === 'Taken';
+            const isMissed = dose.status === 'Missed';
+            const badgeClass = isTaken
+              ? 'badge-taken'
+              : isMissed
+                ? 'badge-missed'
+                : 'badge-pending';
+            const statusText = `[STATUS: ${dose.status.toUpperCase()}]`;
 
-          return `
+            return `
             <li class="simple-dose-item ${badgeClass}">
               <div class="simple-dose-left">
                 <span class="simple-dose-time">${escapeHtml(dose.scheduledTime)}</span>
@@ -215,7 +222,8 @@ class ElderSimpleModeManager {
               </div>
             </li>
           `;
-        }).join('');
+          })
+          .join('');
       }
     }
 
@@ -230,13 +238,15 @@ class ElderSimpleModeManager {
         `;
       } else {
         const d = new Date(this.nextAppointment.datetime);
-        const dateStr = isNaN(d.getTime()) ? this.nextAppointment.datetime : d.toLocaleDateString('en-IN', {
-          weekday: 'long',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
+        const dateStr = isNaN(d.getTime())
+          ? this.nextAppointment.datetime
+          : d.toLocaleDateString('en-IN', {
+              weekday: 'long',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
 
         apptCardEl.innerHTML = `
           <div class="simple-appt-content">

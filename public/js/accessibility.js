@@ -53,7 +53,7 @@ class AccessibilityManager {
         this.persistLocal();
         this.applySettings();
       }
-    } catch (err) {
+    } catch (_err) {
       // Offline fallback: keep local preferences
       console.info('Using local accessibility preferences cache');
     }
@@ -204,7 +204,9 @@ class AccessibilityManager {
         await this.saveToServer();
 
         // Also notify simpleMode manager if it changed
-        window.dispatchEvent(new CustomEvent('simplemode:toggled', { detail: { active: this.elderSimpleMode } }));
+        window.dispatchEvent(
+          new CustomEvent('simplemode:toggled', { detail: { active: this.elderSimpleMode } })
+        );
 
         document.getElementById('modal-accessibility-settings')?.classList.add('hidden');
         this.announce('Accessibility settings saved and synchronized.');
@@ -215,7 +217,9 @@ class AccessibilityManager {
     const btnTestVoice = document.getElementById('btn-test-voice-speech');
     if (btnTestVoice) {
       btnTestVoice.addEventListener('click', () => {
-        this.speak('Hello! This is CareCircle 360 voice assistant. Ready to help you stay on track with your medicines.');
+        this.speak(
+          'Hello! This is CareCircle 360 voice assistant. Ready to help you stay on track with your medicines.'
+        );
       });
     }
   }

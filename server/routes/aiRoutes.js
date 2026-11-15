@@ -2,6 +2,7 @@ import express from 'express';
 import { verifyAuthToken } from '../middleware/auth.js';
 import { aiScanLimiter } from '../middleware/security.js';
 import { analyzeMedicinePackaging } from '../services/geminiService.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 const router = express.Router();
 
@@ -9,8 +10,11 @@ const router = express.Router();
  * MediGuide AI Packaging Scanner
  * Server-side Gemini API integration enforcing safety rules.
  */
-router.post('/scan-packaging', verifyAuthToken, aiScanLimiter, async (req, res) => {
-  try {
+router.post(
+  '/scan-packaging',
+  verifyAuthToken,
+  aiScanLimiter,
+  asyncHandler(async (req, res) => {
     const { packagingText, imageBase64, mimeType } = req.body;
 
     if (!packagingText && !imageBase64) {
@@ -29,15 +33,10 @@ router.post('/scan-packaging', verifyAuthToken, aiScanLimiter, async (req, res) 
     return res.json({
       success: true,
       analysis: result,
-      safetyNotice: 'All extracted details are subject to user review. Verify against physical packaging.'
+      safetyNotice:
+        'All extracted details are subject to user review. Verify against physical packaging.'
     });
-  } catch (err) {
-    console.error('AI Scan packaging error:', err);
-    return res.status(500).json({
-      success: false,
-      error: 'MediGuide scan failed. Please verify with pharmacist or type details directly.'
-    });
-  }
-});
+  })
+);
 
 export default router;

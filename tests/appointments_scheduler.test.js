@@ -7,7 +7,6 @@ import { config } from '../server/config.js';
 test('Appointments and Proactive Cloud Scheduler Integration', async (t) => {
   let token = '';
   let circleId = '';
-  let apptId = '';
 
   await t.test('Setup: Create circle with appointment', async () => {
     const authRes = await request(app).post('/api/auth/demo-login').send({ persona: 'elder' });
@@ -37,7 +36,7 @@ test('Appointments and Proactive Cloud Scheduler Integration', async (t) => {
       });
 
     assert.equal(apptRes.status, 201);
-    apptId = apptRes.body.appointment.id;
+    assert.ok(apptRes.body.appointment.id);
   });
 
   await t.test('1. Should list scheduled appointments for circle', async () => {

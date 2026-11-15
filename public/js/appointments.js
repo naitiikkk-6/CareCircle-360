@@ -41,7 +41,8 @@ class AppointmentManager {
   canUserManageAppts() {
     if (circle.isElder) return true;
     const perms = circle.activeCircle?.permissions || {};
-    if (circle.userRole === 'caretaker' && perms.caretakerCanManageAppointments !== false) return true;
+    if (circle.userRole === 'caretaker' && perms.caretakerCanManageAppointments !== false)
+      return true;
     if (circle.userRole === 'family' && perms.familyCanManageAppointments === true) return true;
     return false;
   }
@@ -53,7 +54,9 @@ class AppointmentManager {
       const res = await api.get('/api/appointments', { circleId: circle.activeCircle.id });
       this.appointments = res.appointments || [];
       this.renderAppointments();
-      window.dispatchEvent(new CustomEvent('appointments:changed', { detail: { appointments: this.appointments } }));
+      window.dispatchEvent(
+        new CustomEvent('appointments:changed', { detail: { appointments: this.appointments } })
+      );
     } catch (err) {
       console.error('Failed to load appointments:', err);
     }
@@ -76,7 +79,7 @@ class AppointmentManager {
 
     const canManage = this.canUserManageAppts();
 
-    this.appointments.forEach(appt => {
+    this.appointments.forEach((appt) => {
       const card = document.createElement('article');
       card.className = `appt-card status-${appt.status.toLowerCase()}`;
       card.setAttribute('data-appt-id', appt.id);
@@ -115,45 +118,53 @@ class AppointmentManager {
           </div>
         </div>
 
-        ${canManage ? `
+        ${
+          canManage
+            ? `
           <div class="appt-actions" role="group" aria-label="Appointment actions">
             <button class="btn btn-outline btn-sm btn-edit-appt" data-appt-id="${appt.id}" aria-label="Edit appointment with Dr. ${escapeHtml(appt.doctorName)}">
               ✏️ Edit
             </button>
-            ${appt.status === 'Upcoming' ? `
+            ${
+              appt.status === 'Upcoming'
+                ? `
               <button class="btn btn-outline-success btn-sm btn-complete-appt" data-appt-id="${appt.id}" aria-label="Mark appointment completed">
                 ✓ Done
               </button>
               <button class="btn btn-outline-warning btn-sm btn-cancel-appt" data-appt-id="${appt.id}" aria-label="Cancel appointment">
                 ✕ Cancel
               </button>
-            ` : ''}
+            `
+                : ''
+            }
             <button class="btn btn-outline-danger btn-sm btn-delete-appt" data-appt-id="${appt.id}" aria-label="Delete appointment record">
               🗑️
             </button>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       `;
 
       container.appendChild(card);
     });
 
     // Attach actions
-    container.querySelectorAll('.btn-edit-appt').forEach(btn => {
+    container.querySelectorAll('.btn-edit-appt').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-appt-id');
         this.openEditModal(id);
       });
     });
 
-    container.querySelectorAll('.btn-complete-appt').forEach(btn => {
+    container.querySelectorAll('.btn-complete-appt').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-appt-id');
         await this.updateStatus(id, 'Completed');
       });
     });
 
-    container.querySelectorAll('.btn-cancel-appt').forEach(btn => {
+    container.querySelectorAll('.btn-cancel-appt').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-appt-id');
         if (confirm('Are you sure you want to cancel this appointment?')) {
@@ -162,7 +173,7 @@ class AppointmentManager {
       });
     });
 
-    container.querySelectorAll('.btn-delete-appt').forEach(btn => {
+    container.querySelectorAll('.btn-delete-appt').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-appt-id');
         if (confirm('Permanently delete this appointment record?')) {
@@ -208,7 +219,7 @@ class AppointmentManager {
   }
 
   openEditModal(apptId) {
-    const appt = this.appointments.find(a => a.id === apptId);
+    const appt = this.appointments.find((a) => a.id === apptId);
     if (!appt) return;
 
     const modal = document.getElementById('modal-edit-appointment');
@@ -222,7 +233,9 @@ class AppointmentManager {
       // Format as YYYY-MM-DDTHH:MM for datetime-local input
       const d = new Date(appt.datetime);
       if (!isNaN(d.getTime())) {
-        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
         document.getElementById('edit-appt-datetime').value = iso;
       }
     }
@@ -303,7 +316,9 @@ class AppointmentManager {
 
   async deleteAppointment(apptId) {
     try {
-      const res = await api.delete(`/api/appointments/${apptId}?circleId=${circle.activeCircle.id}`);
+      const res = await api.delete(
+        `/api/appointments/${apptId}?circleId=${circle.activeCircle.id}`
+      );
       if (res.success) {
         a11y.announce('Appointment removed.');
         await this.loadAppointments();

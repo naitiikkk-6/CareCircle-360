@@ -55,7 +55,7 @@ app.use('/api/guardian', guardianRoutes);
 app.use(express.static(publicDir));
 
 // Fallback to index.html for single page client navigation
-app.get('*', (req, res, next) => {
+app.get('*', (req, res, _next) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ success: false, error: 'Endpoint not found.' });
   }
@@ -63,7 +63,7 @@ app.get('*', (req, res, next) => {
 });
 
 // Central error handler
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   console.error('[Internal Error]', err);
   res.status(err.status || 500).json({
     success: false,

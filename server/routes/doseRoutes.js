@@ -15,6 +15,8 @@ import {
 import { calculateDailyCarePulse } from '../services/pulseService.js';
 import { logCircleActivity } from '../services/activityService.js';
 import { verifyOneClickToken } from '../services/tokenService.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { DOSE_STATUS, TIME_WINDOWS, ROLES } from '../constants.js';
 
 const router = express.Router();
 
@@ -22,94 +24,108 @@ const router = express.Router();
  * Get dose tracking records for a specific date (default: today in circle's timezone).
  * Automatically generates dose instances for today and next 7 days from active schedules.
  */
-router.get('/', verifyAuthToken, requireCircleAccess, requireViewDosesPermission, async (req, res) => {
-  try {
-    const db = getDb();
-    const circleTimezone = req.circle.timezone || 'Asia/Kolkata';
-    const todayInTimezone = getLocalDateInTimezone(new Date(), circleTimezone);
-    const dateStr = req.query.date || todayInTimezone;
+router.get(
+  '/',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireViewDosesPermission,
+  asyncHandler(async (req, res) => {
+    try {
+      const db = getDb();
+      const circleTimezone = req.circle.timezone || 'Asia/Kolkata';
+      const todayInTimezone = getLocalDateInTimezone(new Date(), circleTimezone);
+      const dateStr = req.query.date || todayInTimezone;
 
-    // Automatically synchronize dose instances for current day + next 7 days
-    await generateDoseInstancesForCircle(req.circle, 7);
+      // Automatically synchronize dose instances for current day + next 7 days
+      await generateDoseInstancesForCircle(req.circle, 7);
 
-    // Fetch dose logs for the target date
-    const doseSnap = await db.collection('doseLogs')
-      .where('circleId', '==', req.circle.id)
-      .where('scheduledDate', '==', dateStr)
-      .get();
+      // Fetch dose logs for the target date
+      const doseSnap = await db
+        .collection('doseLogs')
+        .where('circleId', '==', req.circle.id)
+        .where('scheduledDate', '==', dateStr)
+        .get();
 
-    const doses = [];
-    doseSnap.forEach(d => doses.push(d.data()));
+      const doses = [];
+      doseSnap.forEach((d) => doses.push(d.data()));
 
-    // Sort by scheduled time
-    doses.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
+      // Sort by scheduled time
+      doses.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
 
-    return res.json({
-      success: true,
-      circleId: req.circle.id,
-      date: dateStr,
-      timezone: circleTimezone,
-      doses
-    });
-  } catch (err) {
-    console.error('Get doses error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to retrieve dose tracking records.' });
-  }
-});
+      return res.json({
+        success: true,
+        circleId: req.circle.id,
+        date: dateStr,
+        timezone: circleTimezone,
+        doses
+      });
+    } catch (err) {
+      console.error('Get doses error:', err);
+      return res
+        .status(500)
+        .json({ success: false, error: 'Failed to retrieve dose tracking records.' });
+    }
+  })
+);
 
 /**
  * Get dose instances for a date range (e.g. today + 7 days).
  */
-router.get('/range', verifyAuthToken, requireCircleAccess, requireViewDosesPermission, async (req, res) => {
-  try {
-    const db = getDb();
-    const daysAhead = parseInt(req.query.days || '7', 10);
-    const circleTimezone = req.circle.timezone || 'Asia/Kolkata';
+router.get(
+  '/range',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireViewDosesPermission,
+  asyncHandler(async (req, res) => {
+    try {
+      const db = getDb();
+      const daysAhead = parseInt(req.query.days || '7', 10);
+      const circleTimezone = req.circle.timezone || 'Asia/Kolkata';
 
-    // Synchronize doses
-    const genResult = await generateDoseInstancesForCircle(req.circle, daysAhead);
+      // Synchronize doses
+      const genResult = await generateDoseInstancesForCircle(req.circle, daysAhead);
 
-    // Fetch all doses for this circle
-    const doseSnap = await db.collection('doseLogs')
-      .where('circleId', '==', req.circle.id)
-      .get();
+      // Fetch all doses for this circle
+      const doseSnap = await db.collection('doseLogs').where('circleId', '==', req.circle.id).get();
 
-    const allDoses = [];
-    doseSnap.forEach(d => allDoses.push(d.data()));
+      const allDoses = [];
+      doseSnap.forEach((d) => allDoses.push(d.data()));
 
-    const targetDates = new Set(genResult.dates);
-    const filteredDoses = allDoses.filter(d => targetDates.has(d.scheduledDate));
+      const targetDates = new Set(genResult.dates);
+      const filteredDoses = allDoses.filter((d) => targetDates.has(d.scheduledDate));
 
-    filteredDoses.sort((a, b) => {
-      if (a.scheduledDate !== b.scheduledDate) return a.scheduledDate.localeCompare(b.scheduledDate);
-      return a.scheduledTime.localeCompare(b.scheduledTime);
-    });
+      filteredDoses.sort((a, b) => {
+        if (a.scheduledDate !== b.scheduledDate)
+          return a.scheduledDate.localeCompare(b.scheduledDate);
+        return a.scheduledTime.localeCompare(b.scheduledTime);
+      });
 
-    return res.json({
-      success: true,
-      circleId: req.circle.id,
-      timezone: circleTimezone,
-      dates: genResult.dates,
-      totalDoses: filteredDoses.length,
-      doses: filteredDoses
-    });
-  } catch (err) {
-    console.error('Get dose range error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to retrieve dose range.' });
-  }
-});
+      return res.json({
+        success: true,
+        circleId: req.circle.id,
+        timezone: circleTimezone,
+        dates: genResult.dates,
+        totalDoses: filteredDoses.length,
+        doses: filteredDoses
+      });
+    } catch (err) {
+      console.error('Get dose range error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to retrieve dose range.' });
+    }
+  })
+);
 
 /**
  * Log or update dose status: 'Taken', 'Missed', or 'Pending'.
  * Requires Elder authority or permission for Caretaker / Family.
  * Records audit metadata: who changed it, when, and notes.
  */
-const updateDoseStatusHandler = async (req, res) => {
+const updateDoseStatusHandler = asyncHandler(async (req, res) => {
   try {
     const doseId = req.params.id || req.body.doseId;
     const { status, notes = '', missedReason = '' } = req.body;
 
-    if (!doseId || !['Taken', 'Missed', 'Pending'].includes(status)) {
+    if (!doseId || ![DOSE_STATUS.TAKEN, DOSE_STATUS.MISSED, DOSE_STATUS.PENDING].includes(status)) {
       return res.status(400).json({
         success: false,
         error: 'Valid doseId and status ("Taken", "Missed", or "Pending") are required.'
@@ -121,13 +137,15 @@ const updateDoseStatusHandler = async (req, res) => {
     const doseDoc = await doseRef.get();
 
     if (!doseDoc.exists || doseDoc.data().circleId !== req.circle.id) {
-      return res.status(404).json({ success: false, error: 'Dose record not found in this circle.' });
+      return res
+        .status(404)
+        .json({ success: false, error: 'Dose record not found in this circle.' });
     }
 
     const updates = {
       status,
       notes: typeof notes === 'string' ? notes.trim() : '',
-      missedReason: status === 'Missed' ? (missedReason.trim() || 'Logged as missed') : '',
+      missedReason: status === DOSE_STATUS.MISSED ? missedReason.trim() || 'Logged as missed' : '',
       loggedAt: new Date().toISOString(),
       loggedBy: {
         uid: req.user.uid,
@@ -155,127 +173,171 @@ const updateDoseStatusHandler = async (req, res) => {
     console.error('Log dose error:', err);
     return res.status(500).json({ success: false, error: 'Failed to log dose status.' });
   }
-};
+});
 
-router.post('/log', verifyAuthToken, requireCircleAccess, requireDoseLogPermission, updateDoseStatusHandler);
-router.put('/:id/status', verifyAuthToken, requireCircleAccess, requireDoseLogPermission, updateDoseStatusHandler);
-router.put('/:id', verifyAuthToken, requireCircleAccess, requireDoseLogPermission, updateDoseStatusHandler);
+router.post(
+  '/log',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireDoseLogPermission,
+  updateDoseStatusHandler
+);
+router.put(
+  '/:id/status',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireDoseLogPermission,
+  updateDoseStatusHandler
+);
+router.put(
+  '/:id',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireDoseLogPermission,
+  updateDoseStatusHandler
+);
 
 /**
  * Evaluate grace window for missed doses (default grace window: 60 minutes).
  * Can be called by scheduler webhook or manual check.
  */
-router.post('/evaluate-grace', verifyAuthToken, requireCircleAccess, async (req, res) => {
-  try {
-    const graceWindowMinutes = parseInt(req.body.graceWindowMinutes || '60', 10);
-    const result = await evaluateGraceWindowForMissedDoses({
-      circle: req.circle,
-      graceWindowMinutes
-    });
+router.post(
+  '/evaluate-grace',
+  verifyAuthToken,
+  requireCircleAccess,
+  asyncHandler(async (req, res) => {
+    try {
+      const graceWindowMinutes = parseInt(
+        req.body.graceWindowMinutes || String(TIME_WINDOWS.DEFAULT_GRACE_WINDOW_MINUTES),
+        10
+      );
+      const result = await evaluateGraceWindowForMissedDoses({
+        circle: req.circle,
+        graceWindowMinutes
+      });
 
-    return res.json({
-      success: true,
-      message: `Grace window evaluation completed (${graceWindowMinutes} mins window).`,
-      result
-    });
-  } catch (err) {
-    console.error('Grace window evaluation error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to evaluate grace window.' });
-  }
-});
+      return res.json({
+        success: true,
+        message: `Grace window evaluation completed (${graceWindowMinutes} mins window).`,
+        result
+      });
+    } catch (err) {
+      console.error('Grace window evaluation error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to evaluate grace window.' });
+    }
+  })
+);
 
 /**
  * Adherence Calculation for a date range (ignoring future pending doses).
  * Formula: taken / total due (where total due = taken + missed).
  */
-router.get('/adherence', verifyAuthToken, requireCircleAccess, requireViewDosesPermission, async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
-    const adherenceData = await calculateAdherenceForRange({
-      circle: req.circle,
-      startDate: startDate || null,
-      endDate: endDate || null
-    });
+router.get(
+  '/adherence',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireViewDosesPermission,
+  asyncHandler(async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const adherenceData = await calculateAdherenceForRange({
+        circle: req.circle,
+        startDate: startDate || null,
+        endDate: endDate || null
+      });
 
-    return res.json({
-      success: true,
-      adherence: adherenceData
-    });
-  } catch (err) {
-    console.error('Calculate adherence error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to calculate adherence.' });
-  }
-});
+      return res.json({
+        success: true,
+        adherence: adherenceData
+      });
+    } catch (err) {
+      console.error('Calculate adherence error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to calculate adherence.' });
+    }
+  })
+);
 
 /**
  * History view: returns adherence percentage and list of missed doses.
  */
-router.get('/history', verifyAuthToken, requireCircleAccess, requireViewDosesPermission, async (req, res) => {
-  try {
-    const days = parseInt(req.query.days || '30', 10);
-    const now = new Date();
-    const startDateObj = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    const circleTimezone = req.circle.timezone || 'Asia/Kolkata';
+router.get(
+  '/history',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireViewDosesPermission,
+  asyncHandler(async (req, res) => {
+    try {
+      const days = parseInt(req.query.days || '30', 10);
+      const now = new Date();
+      const startDateObj = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const circleTimezone = req.circle.timezone || 'Asia/Kolkata';
 
-    const startDate = getLocalDateInTimezone(startDateObj, circleTimezone);
-    const endDate = getLocalDateInTimezone(now, circleTimezone);
+      const startDate = getLocalDateInTimezone(startDateObj, circleTimezone);
+      const endDate = getLocalDateInTimezone(now, circleTimezone);
 
-    const historyData = await calculateAdherenceForRange({
-      circle: req.circle,
-      startDate,
-      endDate
-    });
-
-    return res.json({
-      success: true,
-      history: {
-        circleId: req.circle.id,
-        elderName: req.circle.elderName,
-        periodDays: days,
+      const historyData = await calculateAdherenceForRange({
+        circle: req.circle,
         startDate,
-        endDate,
-        adherencePercentage: historyData.adherencePercentage,
-        totalDue: historyData.totalDue,
-        takenCount: historyData.takenCount,
-        missedCount: historyData.missedCount,
-        futurePendingCount: historyData.futurePendingCount,
-        missedDoses: historyData.missedDoses
-      }
-    });
-  } catch (err) {
-    console.error('History view error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to retrieve dose history.' });
-  }
-});
+        endDate
+      });
+
+      return res.json({
+        success: true,
+        history: {
+          circleId: req.circle.id,
+          elderName: req.circle.elderName,
+          periodDays: days,
+          startDate,
+          endDate,
+          adherencePercentage: historyData.adherencePercentage,
+          totalDue: historyData.totalDue,
+          takenCount: historyData.takenCount,
+          missedCount: historyData.missedCount,
+          futurePendingCount: historyData.futurePendingCount,
+          missedDoses: historyData.missedDoses
+        }
+      });
+    } catch (err) {
+      console.error('History view error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to retrieve dose history.' });
+    }
+  })
+);
 
 /**
  * Daily Care Pulse Summary for the circle
  */
-router.get('/pulse', verifyAuthToken, requireCircleAccess, requireViewDosesPermission, async (req, res) => {
-  try {
-    const targetDateStr = req.query.date || null;
-    const pulseData = await calculateDailyCarePulse({
-      circle: req.circle,
-      targetDateStr
-    });
+router.get(
+  '/pulse',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireViewDosesPermission,
+  asyncHandler(async (req, res) => {
+    try {
+      const targetDateStr = req.query.date || null;
+      const pulseData = await calculateDailyCarePulse({
+        circle: req.circle,
+        targetDateStr
+      });
 
-    return res.json({
-      success: true,
-      pulse: {
-        ...pulseData,
-        // Backward-compatible aliases if tests or frontends expect them
-        taken: pulseData.takenCount,
-        missed: pulseData.missedCount,
-        pending: pulseData.pendingCount,
-        totalDoses: pulseData.totalDosesToday,
-        statusText: pulseData.statusTextBadge
-      }
-    });
-  } catch (err) {
-    console.error('Pulse error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to generate care pulse.' });
-  }
-});
+      return res.json({
+        success: true,
+        pulse: {
+          ...pulseData,
+          // Backward-compatible aliases if tests or frontends expect them
+          taken: pulseData.takenCount,
+          missed: pulseData.missedCount,
+          pending: pulseData.pendingCount,
+          totalDoses: pulseData.totalDosesToday,
+          statusText: pulseData.statusTextBadge
+        }
+      });
+    } catch (err) {
+      console.error('Pulse error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to generate care pulse.' });
+    }
+  })
+);
 
 /**
  * One-Click Dose Confirmation (Expiring HMAC Token).
@@ -283,7 +345,7 @@ router.get('/pulse', verifyAuthToken, requireCircleAccess, requireViewDosesPermi
  * Accepts GET (from email link click in browser) and POST (from API clients).
  * Rejects expired or tampered tokens with constant-time verification.
  */
-const handleOneClickConfirm = async (req, res) => {
+const handleOneClickConfirm = asyncHandler(async (req, res) => {
   try {
     const token = req.query.token || req.body?.token;
 
@@ -338,13 +400,15 @@ const handleOneClickConfirm = async (req, res) => {
       });
     }
 
-    const { doseId, circleId, action = 'Taken' } = verification.payload;
+    const { doseId, circleId, action = DOSE_STATUS.TAKEN } = verification.payload;
     const db = getDb();
     const doseRef = db.collection('doseLogs').doc(doseId);
     const doseDoc = await doseRef.get();
 
     if (!doseDoc.exists || doseDoc.data().circleId !== circleId) {
-      return res.status(404).json({ success: false, error: 'Dose record not found in care circle.' });
+      return res
+        .status(404)
+        .json({ success: false, error: 'Dose record not found in care circle.' });
     }
 
     const dose = doseDoc.data();
@@ -354,7 +418,7 @@ const handleOneClickConfirm = async (req, res) => {
       loggedBy: {
         uid: 'elder_one_click',
         name: 'Elder (Email Confirmation)',
-        role: 'elder'
+        role: ROLES.ELDER
       },
       oneClickConfirmed: true,
       notes: 'Confirmed via one-click secure email link'
@@ -367,7 +431,7 @@ const handleOneClickConfirm = async (req, res) => {
       circleId,
       action: 'DOSE_CONFIRMED_ONE_CLICK',
       details: `Elder confirmed ${dose.medicineName} (${dose.scheduledTime}) as Taken via one-click email link`,
-      actor: { uid: 'elder_one_click', name: 'Elder', role: 'elder' }
+      actor: { uid: 'elder_one_click', name: 'Elder', role: ROLES.ELDER }
     });
 
     if (req.accepts('html') && req.method === 'GET') {
@@ -414,7 +478,7 @@ const handleOneClickConfirm = async (req, res) => {
     console.error('One click confirm error:', err);
     return res.status(500).json({ success: false, error: 'Failed to process dose confirmation.' });
   }
-};
+});
 
 router.get('/one-click-confirm', handleOneClickConfirm);
 router.post('/one-click-confirm', handleOneClickConfirm);

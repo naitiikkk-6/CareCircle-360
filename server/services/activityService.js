@@ -3,6 +3,13 @@ import { getDb } from '../db.js';
 /**
  * Audit log recording who changed what in the Care Circle.
  * Visible to the elder on the sharing and permissions page.
+ *
+ * @param {Object} params
+ * @param {string} params.circleId - ID of the care circle.
+ * @param {string} params.action - Action identifier (e.g. 'MEDICATION_ADDED').
+ * @param {string|Object} params.details - Human-readable description of change.
+ * @param {Object} params.actor - User or system initiating the action.
+ * @returns {Promise<Object|null>} Created log entry or null on failure.
  */
 export async function logCircleActivity({ circleId, action, details, actor }) {
   try {
@@ -30,16 +37,18 @@ export async function logCircleActivity({ circleId, action, details, actor }) {
 }
 
 /**
- * Retrieve chronological activity logs for a care circle.
+ * Retrieve chronological activity logs for a care circle (newest first).
+ *
+ * @param {string} circleId - ID of the target care circle.
+ * @param {number} [limit=50] - Maximum number of recent log entries to return.
+ * @returns {Promise<Array<Object>>} Sorted list of activity log entries.
  */
 export async function getCircleActivityLogs(circleId, limit = 50) {
   const db = getDb();
-  const snap = await db.collection('activityLogs')
-    .where('circleId', '==', circleId)
-    .get();
+  const snap = await db.collection('activityLogs').where('circleId', '==', circleId).get();
 
   const logs = [];
-  snap.forEach(d => logs.push(d.data()));
+  snap.forEach((d) => logs.push(d.data()));
   logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   return logs.slice(0, limit);
 }

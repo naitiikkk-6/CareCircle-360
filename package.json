@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "keywords": [
     "elderly-care",
@@ -31,6 +33,10 @@
     "nodemailer": "^6.10.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
     "supertest": "^7.0.0"
   },
   "engines": {

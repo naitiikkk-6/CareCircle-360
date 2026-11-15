@@ -24,7 +24,7 @@ export async function verifyAuthToken(req, res, next) {
         authType: 'firebase'
       };
       return next();
-    } catch (fbErr) {
+    } catch (_fbErr) {
       // If Firebase verification fails, check if it's a signed local token
     }
   }
@@ -39,7 +39,7 @@ export async function verifyAuthToken(req, res, next) {
       authType: 'jwt'
     };
     return next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(401).json({
       success: false,
       error: 'Invalid or expired authorization token.'

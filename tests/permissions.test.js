@@ -39,21 +39,24 @@ test('Server-Side Elder Permissions Matrix', async (t) => {
       });
   });
 
-  await t.test('1. Family should be BLOCKED from adding medication by default (Elder-controlled)', async () => {
-    const res = await request(app)
-      .post('/api/medications')
-      .set('Authorization', `Bearer ${familyToken}`)
-      .send({
-        circleId,
-        name: 'Aspirin',
-        dosage: '75mg',
-        schedules: ['09:00']
-      });
+  await t.test(
+    '1. Family should be BLOCKED from adding medication by default (Elder-controlled)',
+    async () => {
+      const res = await request(app)
+        .post('/api/medications')
+        .set('Authorization', `Bearer ${familyToken}`)
+        .send({
+          circleId,
+          name: 'Aspirin',
+          dosage: '75mg',
+          schedules: ['09:00']
+        });
 
-    assert.equal(res.status, 403);
-    assert.equal(res.body.success, false);
-    assert.match(res.body.error, /Permission denied/);
-  });
+      assert.equal(res.status, 403);
+      assert.equal(res.body.success, false);
+      assert.match(res.body.error, /Permission denied/);
+    }
+  );
 
   await t.test('2. Non-elder (Family) cannot modify circle permissions', async () => {
     const res = await request(app)
@@ -86,20 +89,23 @@ test('Server-Side Elder Permissions Matrix', async (t) => {
     assert.equal(res.body.permissions.familyCanManageMeds, true);
   });
 
-  await t.test('4. Family member can now add medication after explicit Elder authorization', async () => {
-    const res = await request(app)
-      .post('/api/medications')
-      .set('Authorization', `Bearer ${familyToken}`)
-      .send({
-        circleId,
-        name: 'Aspirin',
-        dosage: '75mg',
-        schedules: ['09:00'],
-        sourceLabel: 'From the packaging'
-      });
+  await t.test(
+    '4. Family member can now add medication after explicit Elder authorization',
+    async () => {
+      const res = await request(app)
+        .post('/api/medications')
+        .set('Authorization', `Bearer ${familyToken}`)
+        .send({
+          circleId,
+          name: 'Aspirin',
+          dosage: '75mg',
+          schedules: ['09:00'],
+          sourceLabel: 'From the packaging'
+        });
 
-    assert.equal(res.status, 201);
-    assert.equal(res.body.success, true);
-    assert.equal(res.body.medication.name, 'Aspirin');
-  });
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.medication.name, 'Aspirin');
+    }
+  );
 });

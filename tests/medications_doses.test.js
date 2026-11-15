@@ -6,7 +6,6 @@ import app from '../server/app.js';
 test('Medications, Schedules, and Dose Tracking Logic', async (t) => {
   let token = '';
   let circleId = '';
-  let medId = '';
   let doseId = '';
 
   await t.test('Setup: Create circle for medications testing', async () => {
@@ -41,7 +40,7 @@ test('Medications, Schedules, and Dose Tracking Logic', async (t) => {
     assert.equal(res.body.success, true);
     assert.equal(res.body.medication.sourceLabel, 'From the packaging');
     assert.equal(res.body.medication.schedules.length, 2);
-    medId = res.body.medication.id;
+    assert.ok(res.body.medication.id);
   });
 
   await t.test('2. Should enforce safety label fallback for unverified medicine info', async () => {

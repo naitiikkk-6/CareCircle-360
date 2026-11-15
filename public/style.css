@@ -25,16 +25,22 @@
   --border-radius-sm: 6px;
   --border-radius: 12px;
   --border-radius-lg: 18px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
-  --shadow-lg: 0 10px 24px rgba(0,0,0,0.1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.1);
   --transition: all 0.2s ease-in-out;
 }
 
 /* Dynamic Font Sizing (At least 3 levels) */
-html.font-size-normal { --base-font-size: 16px; }
-html.font-size-large { --base-font-size: 20px; }
-html.font-size-xlarge { --base-font-size: 24px; }
+html.font-size-normal {
+  --base-font-size: 16px;
+}
+html.font-size-large {
+  --base-font-size: 20px;
+}
+html.font-size-xlarge {
+  --base-font-size: 24px;
+}
 
 /* WCAG AAA High Contrast Theme */
 html.theme-high-contrast {
@@ -81,7 +87,9 @@ html.theme-high-contrast .btn-miss {
 
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -454,8 +462,10 @@ body {
   min-height: 80px;
   width: 100%;
   max-width: 560px;
-  box-shadow: 0 6px 16px rgba(30,142,62,0.3);
-  transition: transform 0.15s ease-in-out, background-color 0.2s ease-in-out;
+  box-shadow: 0 6px 16px rgba(30, 142, 62, 0.3);
+  transition:
+    transform 0.15s ease-in-out,
+    background-color 0.2s ease-in-out;
   line-height: 1.2;
 }
 
@@ -496,9 +506,19 @@ body {
   gap: 20px;
 }
 
-.all-done-icon { font-size: 3rem; }
-.all-done-title { font-size: 1.8rem; font-weight: 800; color: #137333; }
-.all-done-desc { font-size: 1.1rem; color: #2e7d32; margin-top: 4px; }
+.all-done-icon {
+  font-size: 3rem;
+}
+.all-done-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #137333;
+}
+.all-done-desc {
+  font-size: 1.1rem;
+  color: #2e7d32;
+  margin-top: 4px;
+}
 
 /* Checklist & Next Appointment */
 .simple-section {
@@ -568,9 +588,18 @@ body {
   background: #f1f3f4;
 }
 
-.simple-dose-badge.badge-taken { background: #e6f4ea; color: #137333; }
-.simple-dose-badge.badge-missed { background: #fce8e6; color: #c5221f; }
-.simple-dose-badge.badge-pending { background: #fef7e0; color: #b06000; }
+.simple-dose-badge.badge-taken {
+  background: #e6f4ea;
+  color: #137333;
+}
+.simple-dose-badge.badge-missed {
+  background: #fce8e6;
+  color: #c5221f;
+}
+.simple-dose-badge.badge-pending {
+  background: #fef7e0;
+  color: #b06000;
+}
 
 .simple-dose-center {
   flex: 1;
@@ -738,9 +767,15 @@ html.theme-high-contrast .simple-dose-item {
   transition: width 0.3s;
 }
 
-.progress-high { background: var(--color-success); }
-.progress-medium { background: var(--color-warning); }
-.progress-low { background: var(--color-danger); }
+.progress-high {
+  background: var(--color-success);
+}
+.progress-medium {
+  background: var(--color-warning);
+}
+.progress-low {
+  background: var(--color-danger);
+}
 
 .dose-stat-cards {
   display: flex;
@@ -762,9 +797,15 @@ html.theme-high-contrast .simple-dose-item {
   display: block;
 }
 
-.stat-taken .stat-num { color: var(--color-success); }
-.stat-pending .stat-num { color: var(--color-warning); }
-.stat-missed .stat-num { color: var(--color-danger); }
+.stat-taken .stat-num {
+  color: var(--color-success);
+}
+.stat-pending .stat-num {
+  color: var(--color-warning);
+}
+.stat-missed .stat-num {
+  color: var(--color-danger);
+}
 
 .stat-label {
   font-size: 0.75rem;
@@ -1133,9 +1174,18 @@ html.theme-high-contrast .simple-dose-item {
   margin-top: 4px;
 }
 
-.chip-taken { background: var(--color-success-light); color: var(--color-success); }
-.chip-pending { background: var(--color-warning-light); color: var(--color-warning); }
-.chip-missed { background: var(--color-danger-light); color: var(--color-danger); }
+.chip-taken {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+.chip-pending {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+.chip-missed {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
 
 .dose-med-name {
   font-size: 1.25rem;
@@ -1297,7 +1347,9 @@ html.theme-high-contrast .simple-dose-item {
   background-color: var(--color-primary);
   color: #ffffff;
 }
-.btn-primary:hover { background-color: var(--color-primary-hover); }
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
 
 .btn-secondary {
   background-color: var(--color-secondary);
@@ -1314,7 +1366,9 @@ html.theme-high-contrast .simple-dose-item {
   background: var(--color-surface);
   color: var(--color-text);
 }
-.btn-outline:hover { background: #f1f3f4; }
+.btn-outline:hover {
+  background: #f1f3f4;
+}
 
 .btn-outline-danger {
   border-color: var(--color-danger);
@@ -1344,7 +1398,9 @@ html.theme-high-contrast .simple-dose-item {
   font-size: 1rem;
   font-weight: 800;
 }
-.btn-take:hover { background: #137333; }
+.btn-take:hover {
+  background: #137333;
+}
 
 .btn-large-touch {
   min-height: 48px;
@@ -1357,7 +1413,9 @@ html.theme-high-contrast .simple-dose-item {
   padding: 10px 16px;
   font-weight: 700;
 }
-.btn-miss:hover { background: #b3261e; }
+.btn-miss:hover {
+  background: #b3261e;
+}
 
 .btn-reset {
   background: #f1f3f4;
@@ -1365,9 +1423,18 @@ html.theme-high-contrast .simple-dose-item {
   border: 1px solid var(--color-border);
 }
 
-.btn-block { width: 100%; }
-.btn-sm { min-height: 36px; padding: 4px 12px; font-size: 0.85rem; }
-.btn-lg { min-height: 52px; font-size: 1.1rem; }
+.btn-block {
+  width: 100%;
+}
+.btn-sm {
+  min-height: 36px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+}
+.btn-lg {
+  min-height: 52px;
+  font-size: 1.1rem;
+}
 
 /* Elder Simple Mode Styling */
 html.mode-elder-simple {
@@ -1684,7 +1751,9 @@ html.mode-elder-simple .btn-miss {
   align-items: flex-start;
 }
 
-.safety-icon { font-size: 24px; }
+.safety-icon {
+  font-size: 24px;
+}
 
 .simulated-banner {
   background: #fff8e1;
@@ -1719,7 +1788,8 @@ html.mode-elder-simple .btn-miss {
   }
 }
 
-.scan-input-card, .scan-results-card {
+.scan-input-card,
+.scan-results-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
@@ -1769,10 +1839,27 @@ html.mode-elder-simple .btn-miss {
   box-shadow: var(--shadow-sm);
 }
 
-.kpi-icon { font-size: 28px; }
-.kpi-label { font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted); display: block; margin-top: 4px; }
-.kpi-val { font-size: 1.5rem; font-weight: 800; color: var(--color-primary); margin: 6px 0; }
-.kpi-sub { font-size: 0.75rem; color: #137333; font-weight: 600; }
+.kpi-icon {
+  font-size: 28px;
+}
+.kpi-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  display: block;
+  margin-top: 4px;
+}
+.kpi-val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin: 6px 0;
+}
+.kpi-sub {
+  font-size: 0.75rem;
+  color: #137333;
+  font-weight: 600;
+}
 
 .chart-wrapper {
   background: var(--color-surface);
@@ -1835,8 +1922,14 @@ html.mode-elder-simple .btn-miss {
   align-items: center;
 }
 
-.member-info { display: flex; flex-direction: column; }
-.member-email { font-size: 0.8rem; color: var(--color-text-muted); }
+.member-info {
+  display: flex;
+  flex-direction: column;
+}
+.member-email {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
 
 .permission-fieldset {
   border: 1px solid var(--color-border);
@@ -1908,7 +2001,8 @@ html.mode-elder-simple .btn-miss {
   font-size: 1rem;
 }
 
-.modal-overlay, .auth-overlay {
+.modal-overlay,
+.auth-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -1919,7 +2013,8 @@ html.mode-elder-simple .btn-miss {
   padding: 20px;
 }
 
-.modal-card, .auth-card {
+.modal-card,
+.auth-card {
   background: var(--color-surface);
   border-radius: var(--border-radius);
   padding: 28px;
@@ -2352,8 +2447,18 @@ html.mode-elder-simple .btn-miss {
   gap: 10px;
 }
 
-.mt-2 { margin-top: 8px; }
-.mt-3 { margin-top: 14px; }
-.mt-4 { margin-top: 20px; }
-.mb-3 { margin-bottom: 14px; }
-.hidden { display: none !important; }
+.mt-2 {
+  margin-top: 8px;
+}
+.mt-3 {
+  margin-top: 14px;
+}
+.mt-4 {
+  margin-top: 20px;
+}
+.mb-3 {
+  margin-bottom: 14px;
+}
+.hidden {
+  display: none !important;
+}

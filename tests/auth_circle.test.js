@@ -9,9 +9,7 @@ test('Auth and Care Circle Management', async (t) => {
   let circleId = '';
 
   await t.test('1. Should provision demo Elder account and return valid JWT', async () => {
-    const res = await request(app)
-      .post('/api/auth/demo-login')
-      .send({ persona: 'elder' });
+    const res = await request(app).post('/api/auth/demo-login').send({ persona: 'elder' });
 
     assert.equal(res.status, 200);
     assert.equal(res.body.success, true);
@@ -21,9 +19,7 @@ test('Auth and Care Circle Management', async (t) => {
   });
 
   await t.test('2. Should provision demo Caretaker account', async () => {
-    const res = await request(app)
-      .post('/api/auth/demo-login')
-      .send({ persona: 'caretaker' });
+    const res = await request(app).post('/api/auth/demo-login').send({ persona: 'caretaker' });
 
     assert.equal(res.status, 200);
     assert.equal(res.body.success, true);

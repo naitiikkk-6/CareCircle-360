@@ -1,36 +1,34 @@
 import { getDb } from '../db.js';
-import {
-  getLocalDateInTimezone,
-  calculateAdherenceForRange
-} from './doseService.js';
+import { getLocalDateInTimezone, calculateAdherenceForRange } from './doseService.js';
 import { generateWeeklyFamilySummaryWithGemini } from './geminiService.js';
 import { sendWeeklyFamilySummary } from './emailService.js';
 import { logCircleActivity } from './activityService.js';
+import { TIME_OF_DAY_SLOTS, ROLES } from '../constants.js';
 
 /**
  * Classifies an HH:MM time string into a plain time-of-day slot.
- * Morning: 05:00 - 11:59
- * Afternoon: 12:00 - 16:59
- * Evening: 17:00 - 20:59
- * Night: 21:00 - 04:59
+ * Morning: 05:00 - 11:59, Afternoon: 12:00 - 16:59, Evening: 17:00 - 20:59, Night: 21:00 - 04:59.
+ *
+ * @param {string} timeStr - Time in HH:MM format.
+ * @returns {'morning'|'afternoon'|'evening'|'night'} Slot name.
  */
 export function getTimeOfDaySlot(timeStr) {
   if (!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) {
-    return 'morning';
+    return TIME_OF_DAY_SLOTS.MORNING;
   }
   const [h] = timeStr.split(':').map(Number);
-  if (h >= 5 && h < 12) return 'morning';
-  if (h >= 12 && h < 17) return 'afternoon';
-  if (h >= 17 && h < 21) return 'evening';
-  return 'night';
+  if (h >= 5 && h < 12) return TIME_OF_DAY_SLOTS.MORNING;
+  if (h >= 12 && h < 17) return TIME_OF_DAY_SLOTS.AFTERNOON;
+  if (h >= 17 && h < 21) return TIME_OF_DAY_SLOTS.EVENING;
+  return TIME_OF_DAY_SLOTS.NIGHT;
 }
 
 /**
  * Aggregates 7-day adherence and missed doses by time of day for a care circle.
  *
- * @param {Object} circle
- * @param {Date|null} [referenceDateObj=null]
- * @returns {Promise<Object>}
+ * @param {Object} circle - Care circle document.
+ * @param {Date|null} [referenceDateObj=null] - Date object for time evaluation/testing.
+ * @returns {Promise<Object>} Aggregated metrics and natural language summary text.
  */
 export async function computeWeeklySummaryData(circle, referenceDateObj = null) {
   const timezone = circle.timezone || 'Asia/Kolkata';
@@ -112,6 +110,12 @@ export async function computeWeeklySummaryData(circle, referenceDateObj = null) 
  * Filter allowed recipients for weekly family digest based on elder-controlled settings.
  * Skips revoked members and respects member-level overrides.
  */
+/**
+ * Resolves list of email addresses permitted by elder to receive the weekly family digest.
+ *
+ * @param {Object} circle - Care circle document.
+ * @returns {string[]} List of permitted recipient emails.
+ */
 export function getWeeklySummaryRecipients(circle) {
   const emails = new Set();
   const perms = circle.permissions || {};
@@ -128,11 +132,11 @@ export function getWeeklySummaryRecipients(circle) {
 
     const mPerms = m.permissions || {};
 
-    if (m.role === 'caretaker') {
+    if (m.role === ROLES.CARETAKER) {
       if (mPerms.alertWeeklySummary !== false && perms.caretakerCanReceiveWeeklySummary !== false) {
         emails.add(m.email);
       }
-    } else if (m.role === 'family') {
+    } else if (m.role === ROLES.FAMILY) {
       // Family members receive digest if permitted by elder
       if (mPerms.alertWeeklySummary !== false && perms.familyCanReceiveWeeklySummary !== false) {
         emails.add(m.email);
@@ -144,7 +148,14 @@ export function getWeeklySummaryRecipients(circle) {
 }
 
 /**
- * Compute, cache, and optionally email the weekly summary for a circle.
+ * Computes, caches, and optionally emails the weekly summary for a care circle.
+ *
+ * @param {Object} options
+ * @param {Object} options.circle - Care circle document.
+ * @param {Date|null} [options.referenceDateObj=null] - Optional reference date.
+ * @param {boolean} [options.sendEmail=false] - Whether to send emails.
+ * @param {boolean} [options.forceSend=false] - Whether to bypass duplicate check.
+ * @returns {Promise<Object>} Summary object.
  */
 export async function processWeeklySummaryForCircle({
   circle,
@@ -156,8 +167,6 @@ export async function processWeeklySummaryForCircle({
   const now = referenceDateObj ? new Date(referenceDateObj) : new Date();
   const summary = await computeWeeklySummaryData(circle, now);
 
-  // Compute a stable week identifier like circleId_YYYY-Wxx
-  const weekYear = `${summary.endDate.substring(0, 4)}-W${Math.ceil(new Date(summary.endDate).getDate() / 7)}`;
   const summaryDocId = `summary_${circle.id}_${summary.endDate}`;
 
   let emailsSent = 0;

@@ -15,8 +15,6 @@ import { guardian } from './js/guardian.js';
 import { simpleMode } from './js/simpleMode.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('CareCircle 360 client initialized.');
-
   // Initialize accessibility first to apply themes and font preferences
   await a11y.init();
 

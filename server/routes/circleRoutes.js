@@ -7,42 +7,48 @@ import { requireCircleAccess, requireElderOnly } from '../middleware/permissions
 import { passcodeJoinLimiter } from '../middleware/security.js';
 import { logCircleActivity, getCircleActivityLogs } from '../services/activityService.js';
 import { processWeeklySummaryForCircle } from '../services/weeklySummaryService.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { ROLES, TIME_WINDOWS } from '../constants.js';
 
 const router = express.Router();
 
 /**
  * List all care circles the authenticated user belongs to.
  */
-router.get('/', verifyAuthToken, async (req, res) => {
-  try {
-    const db = getDb();
-    const circlesSnap = await db.collection('careCircles').get();
-    const myCircles = [];
+router.get(
+  '/',
+  verifyAuthToken,
+  asyncHandler(async (req, res) => {
+    try {
+      const db = getDb();
+      const circlesSnap = await db.collection('careCircles').get();
+      const myCircles = [];
 
-    circlesSnap.forEach(doc => {
-      const circle = doc.data();
-      const isElder = circle.elderUid === req.user.uid;
-      const member = (circle.members || []).find(m => m.uid === req.user.uid);
+      circlesSnap.forEach((doc) => {
+        const circle = doc.data();
+        const isElder = circle.elderUid === req.user.uid;
+        const member = (circle.members || []).find((m) => m.uid === req.user.uid);
 
-      if (isElder || member) {
-        myCircles.push({
-          id: circle.id,
-          name: circle.name,
-          elderName: circle.elderName,
-          timezone: circle.timezone || 'Asia/Kolkata',
-          myRole: isElder ? 'elder' : member.role,
-          memberCount: (circle.members?.length || 0) + 1,
-          createdAt: circle.createdAt
-        });
-      }
-    });
+        if (isElder || member) {
+          myCircles.push({
+            id: circle.id,
+            name: circle.name,
+            elderName: circle.elderName,
+            timezone: circle.timezone || 'Asia/Kolkata',
+            myRole: isElder ? ROLES.ELDER : member.role,
+            memberCount: (circle.members?.length || 0) + 1,
+            createdAt: circle.createdAt
+          });
+        }
+      });
 
-    return res.json({ success: true, circles: myCircles });
-  } catch (err) {
-    console.error('List circles error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to retrieve care circles.' });
-  }
-});
+      return res.json({ success: true, circles: myCircles });
+    } catch (err) {
+      console.error('List circles error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to retrieve care circles.' });
+    }
+  })
+);
 
 /**
  * Create a new Care Circle.
@@ -71,7 +77,8 @@ router.post('/create', verifyAuthToken, async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const passcodeHash = await bcrypt.hash(passcode, salt);
 
-    const circleId = 'circle_' + Date.now().toString(36) + '_' + crypto.randomBytes(3).toString('hex');
+    const circleId =
+      'circle_' + Date.now().toString(36) + '_' + crypto.randomBytes(3).toString('hex');
     const db = getDb();
 
     const newCircle = {
@@ -119,7 +126,7 @@ router.post('/create', verifyAuthToken, async (req, res) => {
  */
 router.post('/join', verifyAuthToken, passcodeJoinLimiter, async (req, res) => {
   try {
-    const { circleId, passcode, role = 'family' } = req.body;
+    const { circleId, passcode, role = ROLES.FAMILY } = req.body;
 
     // Strict input validation
     if (!circleId || typeof circleId !== 'string') {
@@ -136,7 +143,7 @@ router.post('/join', verifyAuthToken, passcodeJoinLimiter, async (req, res) => {
       });
     }
 
-    if (!['caretaker', 'family'].includes(role)) {
+    if (![ROLES.CARETAKER, ROLES.FAMILY].includes(role)) {
       return res.status(400).json({
         success: false,
         error: 'Invalid join role. Must be "caretaker" or "family".'
@@ -168,9 +175,13 @@ router.post('/join', verifyAuthToken, passcodeJoinLimiter, async (req, res) => {
 
     // Explicit constant-time comparison safeguard
     const expectedBuffer = Buffer.from(circle.passcodeHash, 'utf8');
-    const computedHash = isPasscodeValid ? circle.passcodeHash : await bcrypt.hash('dummy_invalid_timing_defense', 10);
+    const computedHash = isPasscodeValid
+      ? circle.passcodeHash
+      : await bcrypt.hash('dummy_invalid_timing_defense', 10);
     const computedBuffer = Buffer.from(computedHash, 'utf8');
-    const timingMatch = (expectedBuffer.length === computedBuffer.length) && crypto.timingSafeEqual(expectedBuffer, computedBuffer);
+    const timingMatch =
+      expectedBuffer.length === computedBuffer.length &&
+      crypto.timingSafeEqual(expectedBuffer, computedBuffer);
 
     if (!isPasscodeValid || !timingMatch) {
       return res.status(401).json({
@@ -181,7 +192,7 @@ router.post('/join', verifyAuthToken, passcodeJoinLimiter, async (req, res) => {
 
     // Role assignment & member registration
     const members = circle.members || [];
-    const existingIndex = members.findIndex(m => m.uid === req.user.uid);
+    const existingIndex = members.findIndex((m) => m.uid === req.user.uid);
 
     const memberRecord = {
       uid: req.user.uid,
@@ -238,49 +249,68 @@ const updateCirclePermissionsHandler = async (req, res) => {
   try {
     const { permissions } = req.body;
     if (!permissions || typeof permissions !== 'object') {
-      return res.status(400).json({ success: false, error: 'Valid permissions object is required.' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Valid permissions object is required.' });
     }
 
     const currentPerms = req.circle.permissions || {};
     const updatedPermissions = {
       ...currentPerms,
-      caretakerCanManageMeds: permissions.caretakerCanManageMeds !== undefined
-        ? Boolean(permissions.caretakerCanManageMeds)
-        : currentPerms.caretakerCanManageMeds ?? true,
-      caretakerCanLogDoses: permissions.caretakerCanLogDoses !== undefined
-        ? Boolean(permissions.caretakerCanLogDoses)
-        : currentPerms.caretakerCanLogDoses ?? true,
-      caretakerCanManageAppointments: permissions.caretakerCanManageAppointments !== undefined
-        ? Boolean(permissions.caretakerCanManageAppointments)
-        : currentPerms.caretakerCanManageAppointments ?? true,
-      familyCanLogDoses: permissions.familyCanLogDoses !== undefined
-        ? Boolean(permissions.familyCanLogDoses)
-        : currentPerms.familyCanLogDoses ?? false,
-      familyCanManageMeds: permissions.familyCanManageMeds !== undefined
-        ? Boolean(permissions.familyCanManageMeds)
-        : currentPerms.familyCanManageMeds ?? false,
-      familyCanManageAppointments: permissions.familyCanManageAppointments !== undefined
-        ? Boolean(permissions.familyCanManageAppointments)
-        : currentPerms.familyCanManageAppointments ?? false,
-      familyCanViewVitals: permissions.familyCanViewVitals !== undefined
-        ? Boolean(permissions.familyCanViewVitals)
-        : currentPerms.familyCanViewVitals ?? true,
-      familyCanReceiveWeeklySummary: permissions.familyCanReceiveWeeklySummary !== undefined
-        ? Boolean(permissions.familyCanReceiveWeeklySummary)
-        : currentPerms.familyCanReceiveWeeklySummary ?? true,
-      caretakerCanReceiveWeeklySummary: permissions.caretakerCanReceiveWeeklySummary !== undefined
-        ? Boolean(permissions.caretakerCanReceiveWeeklySummary)
-        : currentPerms.caretakerCanReceiveWeeklySummary ?? true
+      caretakerCanManageMeds:
+        permissions.caretakerCanManageMeds !== undefined
+          ? Boolean(permissions.caretakerCanManageMeds)
+          : (currentPerms.caretakerCanManageMeds ?? true),
+      caretakerCanLogDoses:
+        permissions.caretakerCanLogDoses !== undefined
+          ? Boolean(permissions.caretakerCanLogDoses)
+          : (currentPerms.caretakerCanLogDoses ?? true),
+      caretakerCanManageAppointments:
+        permissions.caretakerCanManageAppointments !== undefined
+          ? Boolean(permissions.caretakerCanManageAppointments)
+          : (currentPerms.caretakerCanManageAppointments ?? true),
+      familyCanLogDoses:
+        permissions.familyCanLogDoses !== undefined
+          ? Boolean(permissions.familyCanLogDoses)
+          : (currentPerms.familyCanLogDoses ?? false),
+      familyCanManageMeds:
+        permissions.familyCanManageMeds !== undefined
+          ? Boolean(permissions.familyCanManageMeds)
+          : (currentPerms.familyCanManageMeds ?? false),
+      familyCanManageAppointments:
+        permissions.familyCanManageAppointments !== undefined
+          ? Boolean(permissions.familyCanManageAppointments)
+          : (currentPerms.familyCanManageAppointments ?? false),
+      familyCanViewVitals:
+        permissions.familyCanViewVitals !== undefined
+          ? Boolean(permissions.familyCanViewVitals)
+          : (currentPerms.familyCanViewVitals ?? true),
+      familyCanReceiveWeeklySummary:
+        permissions.familyCanReceiveWeeklySummary !== undefined
+          ? Boolean(permissions.familyCanReceiveWeeklySummary)
+          : (currentPerms.familyCanReceiveWeeklySummary ?? true),
+      caretakerCanReceiveWeeklySummary:
+        permissions.caretakerCanReceiveWeeklySummary !== undefined
+          ? Boolean(permissions.caretakerCanReceiveWeeklySummary)
+          : (currentPerms.caretakerCanReceiveWeeklySummary ?? true)
     };
 
     const db = getDb();
     const circleUpdates = { permissions: updatedPermissions };
 
     if (req.body.caretakerEscalationDelayMinutes !== undefined) {
-      circleUpdates.caretakerEscalationDelayMinutes = Math.max(1, parseInt(req.body.caretakerEscalationDelayMinutes, 10) || 15);
+      circleUpdates.caretakerEscalationDelayMinutes = Math.max(
+        1,
+        parseInt(req.body.caretakerEscalationDelayMinutes, 10) ||
+          TIME_WINDOWS.DEFAULT_CARETAKER_ESCALATION_MINUTES
+      );
     }
     if (req.body.familyEscalationDelayMinutes !== undefined) {
-      circleUpdates.familyEscalationDelayMinutes = Math.max(1, parseInt(req.body.familyEscalationDelayMinutes, 10) || 30);
+      circleUpdates.familyEscalationDelayMinutes = Math.max(
+        1,
+        parseInt(req.body.familyEscalationDelayMinutes, 10) ||
+          TIME_WINDOWS.DEFAULT_FAMILY_ESCALATION_MINUTES
+      );
     }
 
     await db.collection('careCircles').doc(req.circle.id).update(circleUpdates);
@@ -305,194 +335,283 @@ const updateCirclePermissionsHandler = async (req, res) => {
   }
 };
 
-router.put('/:circleId/permissions', verifyAuthToken, requireCircleAccess, requireElderOnly, updateCirclePermissionsHandler);
-router.put('/permissions', verifyAuthToken, requireCircleAccess, requireElderOnly, updateCirclePermissionsHandler);
+router.put(
+  '/:circleId/permissions',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireElderOnly,
+  updateCirclePermissionsHandler
+);
+router.put(
+  '/permissions',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireElderOnly,
+  updateCirclePermissionsHandler
+);
 
 /**
  * Update circle passcode (ELDER ONLY).
  */
-router.put('/:circleId/passcode', verifyAuthToken, requireCircleAccess, requireElderOnly, async (req, res) => {
-  try {
-    const { newPasscode } = req.body;
-    if (!newPasscode || typeof newPasscode !== 'string' || newPasscode.length < 4 || newPasscode.length > 64) {
-      return res.status(400).json({
-        success: false,
-        error: 'New passcode must be between 4 and 64 characters long.'
+router.put(
+  '/:circleId/passcode',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireElderOnly,
+  async (req, res) => {
+    try {
+      const { newPasscode } = req.body;
+      if (
+        !newPasscode ||
+        typeof newPasscode !== 'string' ||
+        newPasscode.length < 4 ||
+        newPasscode.length > 64
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: 'New passcode must be between 4 and 64 characters long.'
+        });
+      }
+
+      const salt = await bcrypt.genSalt(12);
+      const passcodeHash = await bcrypt.hash(newPasscode, salt);
+
+      const db = getDb();
+      await db
+        .collection('careCircles')
+        .doc(req.circle.id)
+        .update({
+          passcodeHash,
+          passcodeHint: `${newPasscode.length} characters`
+        });
+
+      await logCircleActivity({
+        circleId: req.circle.id,
+        action: 'PASSCODE_CHANGED',
+        details: 'Elder updated join passcode',
+        actor: req.user
       });
+
+      return res.json({
+        success: true,
+        message:
+          'Circle passcode updated securely. Share the new passcode with trusted circle members.'
+      });
+    } catch (err) {
+      console.error('Update passcode error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to update passcode.' });
     }
-
-    const salt = await bcrypt.genSalt(12);
-    const passcodeHash = await bcrypt.hash(newPasscode, salt);
-
-    const db = getDb();
-    await db.collection('careCircles').doc(req.circle.id).update({
-      passcodeHash,
-      passcodeHint: `${newPasscode.length} characters`
-    });
-
-    await logCircleActivity({
-      circleId: req.circle.id,
-      action: 'PASSCODE_CHANGED',
-      details: 'Elder updated join passcode',
-      actor: req.user
-    });
-
-    return res.json({
-      success: true,
-      message: 'Circle passcode updated securely. Share the new passcode with trusted circle members.'
-    });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: 'Failed to update passcode.' });
   }
-});
+);
 
 /**
  * Update sharing permissions for an individual member (ELDER ONLY).
  * Controls what they can view (medicines, doses, appts, readings),
  * what they can edit, and what email alerts they receive.
  */
-router.put('/:circleId/members/:memberUid/permissions', verifyAuthToken, requireCircleAccess, requireElderOnly, async (req, res) => {
-  try {
-    const { memberUid } = req.params;
-    const { permissions } = req.body;
+router.put(
+  '/:circleId/members/:memberUid/permissions',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireElderOnly,
+  async (req, res) => {
+    try {
+      const { memberUid } = req.params;
+      const { permissions } = req.body;
 
-    if (!permissions || typeof permissions !== 'object') {
-      return res.status(400).json({ success: false, error: 'Valid permissions object is required.' });
+      if (!permissions || typeof permissions !== 'object') {
+        return res
+          .status(400)
+          .json({ success: false, error: 'Valid permissions object is required.' });
+      }
+
+      const members = req.circle.members || [];
+      const memberIndex = members.findIndex((m) => m.uid === memberUid);
+
+      if (memberIndex === -1) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Member not found in this care circle.' });
+      }
+
+      const currentMember = members[memberIndex];
+      const currentMemberPerms = currentMember.permissions || {};
+
+      const updatedPermissions = {
+        ...currentMemberPerms,
+        canViewMedicines:
+          permissions.canViewMedicines !== undefined
+            ? Boolean(permissions.canViewMedicines)
+            : (currentMemberPerms.canViewMedicines ?? true),
+        canViewDoses:
+          permissions.canViewDoses !== undefined
+            ? Boolean(permissions.canViewDoses)
+            : (currentMemberPerms.canViewDoses ?? true),
+        canViewAppointments:
+          permissions.canViewAppointments !== undefined
+            ? Boolean(permissions.canViewAppointments)
+            : (currentMemberPerms.canViewAppointments ?? true),
+        canViewReadings:
+          permissions.canViewReadings !== undefined
+            ? Boolean(permissions.canViewReadings)
+            : (currentMemberPerms.canViewReadings ?? true),
+        canEditMedicines:
+          permissions.canEditMedicines !== undefined
+            ? Boolean(permissions.canEditMedicines)
+            : (currentMemberPerms.canEditMedicines ?? currentMember.role === ROLES.CARETAKER),
+        canEditDoses:
+          permissions.canEditDoses !== undefined
+            ? Boolean(permissions.canEditDoses)
+            : (currentMemberPerms.canEditDoses ?? currentMember.role === ROLES.CARETAKER),
+        canEditAppointments:
+          permissions.canEditAppointments !== undefined
+            ? Boolean(permissions.canEditAppointments)
+            : (currentMemberPerms.canEditAppointments ?? currentMember.role === ROLES.CARETAKER),
+        alertIntakeReminders:
+          permissions.alertIntakeReminders !== undefined
+            ? Boolean(permissions.alertIntakeReminders)
+            : (currentMemberPerms.alertIntakeReminders ?? currentMember.role === ROLES.CARETAKER),
+        alertMissedDoses:
+          permissions.alertMissedDoses !== undefined
+            ? Boolean(permissions.alertMissedDoses)
+            : (currentMemberPerms.alertMissedDoses ?? true),
+        alertAppointments:
+          permissions.alertAppointments !== undefined
+            ? Boolean(permissions.alertAppointments)
+            : (currentMemberPerms.alertAppointments ?? true),
+        alertWeeklySummary:
+          permissions.alertWeeklySummary !== undefined
+            ? Boolean(permissions.alertWeeklySummary)
+            : (currentMemberPerms.alertWeeklySummary ?? true)
+      };
+
+      members[memberIndex] = {
+        ...currentMember,
+        permissions: updatedPermissions
+      };
+
+      const db = getDb();
+      await db.collection('careCircles').doc(req.circle.id).update({ members });
+
+      await logCircleActivity({
+        circleId: req.circle.id,
+        action: 'MEMBER_PERMISSIONS_UPDATED',
+        details: `Elder updated permissions for ${currentMember.name || currentMember.email} (${currentMember.role})`,
+        actor: req.user
+      });
+
+      return res.json({
+        success: true,
+        message: `Permissions updated for ${currentMember.name || currentMember.email}.`,
+        member: members[memberIndex]
+      });
+    } catch (err) {
+      console.error('Update member permissions error:', err);
+      return res
+        .status(500)
+        .json({ success: false, error: 'Failed to update member permissions.' });
     }
-
-    const members = req.circle.members || [];
-    const memberIndex = members.findIndex(m => m.uid === memberUid);
-
-    if (memberIndex === -1) {
-      return res.status(404).json({ success: false, error: 'Member not found in this care circle.' });
-    }
-
-    const currentMember = members[memberIndex];
-    const currentMemberPerms = currentMember.permissions || {};
-
-    const updatedPermissions = {
-      ...currentMemberPerms,
-      canViewMedicines: permissions.canViewMedicines !== undefined ? Boolean(permissions.canViewMedicines) : currentMemberPerms.canViewMedicines ?? true,
-      canViewDoses: permissions.canViewDoses !== undefined ? Boolean(permissions.canViewDoses) : currentMemberPerms.canViewDoses ?? true,
-      canViewAppointments: permissions.canViewAppointments !== undefined ? Boolean(permissions.canViewAppointments) : currentMemberPerms.canViewAppointments ?? true,
-      canViewReadings: permissions.canViewReadings !== undefined ? Boolean(permissions.canViewReadings) : currentMemberPerms.canViewReadings ?? true,
-      canEditMedicines: permissions.canEditMedicines !== undefined ? Boolean(permissions.canEditMedicines) : currentMemberPerms.canEditMedicines ?? (currentMember.role === 'caretaker'),
-      canEditDoses: permissions.canEditDoses !== undefined ? Boolean(permissions.canEditDoses) : currentMemberPerms.canEditDoses ?? (currentMember.role === 'caretaker'),
-      canEditAppointments: permissions.canEditAppointments !== undefined ? Boolean(permissions.canEditAppointments) : currentMemberPerms.canEditAppointments ?? (currentMember.role === 'caretaker'),
-      alertIntakeReminders: permissions.alertIntakeReminders !== undefined ? Boolean(permissions.alertIntakeReminders) : currentMemberPerms.alertIntakeReminders ?? (currentMember.role === 'caretaker'),
-      alertMissedDoses: permissions.alertMissedDoses !== undefined ? Boolean(permissions.alertMissedDoses) : currentMemberPerms.alertMissedDoses ?? true,
-      alertAppointments: permissions.alertAppointments !== undefined ? Boolean(permissions.alertAppointments) : currentMemberPerms.alertAppointments ?? true,
-      alertWeeklySummary: permissions.alertWeeklySummary !== undefined ? Boolean(permissions.alertWeeklySummary) : currentMemberPerms.alertWeeklySummary ?? true
-    };
-
-    members[memberIndex] = {
-      ...currentMember,
-      permissions: updatedPermissions
-    };
-
-    const db = getDb();
-    await db.collection('careCircles').doc(req.circle.id).update({ members });
-
-    await logCircleActivity({
-      circleId: req.circle.id,
-      action: 'MEMBER_PERMISSIONS_UPDATED',
-      details: `Elder updated permissions for ${currentMember.name || currentMember.email} (${currentMember.role})`,
-      actor: req.user
-    });
-
-    return res.json({
-      success: true,
-      message: `Permissions updated for ${currentMember.name || currentMember.email}.`,
-      member: members[memberIndex]
-    });
-  } catch (err) {
-    console.error('Update member permissions error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to update member permissions.' });
   }
-});
+);
 
 /**
  * Revoke member access immediately (ELDER ONLY).
  * Instantaneous server-side enforcement on all routes.
  */
-router.post('/:circleId/members/:memberUid/revoke', verifyAuthToken, requireCircleAccess, requireElderOnly, async (req, res) => {
-  try {
-    const { memberUid } = req.params;
-    const members = req.circle.members || [];
-    const memberIndex = members.findIndex(m => m.uid === memberUid);
+router.post(
+  '/:circleId/members/:memberUid/revoke',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireElderOnly,
+  async (req, res) => {
+    try {
+      const { memberUid } = req.params;
+      const members = req.circle.members || [];
+      const memberIndex = members.findIndex((m) => m.uid === memberUid);
 
-    if (memberIndex === -1) {
-      return res.status(404).json({ success: false, error: 'Member not found in this care circle.' });
+      if (memberIndex === -1) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Member not found in this care circle.' });
+      }
+
+      const currentMember = members[memberIndex];
+      members[memberIndex] = {
+        ...currentMember,
+        isRevoked: true,
+        revokedAt: new Date().toISOString()
+      };
+
+      const db = getDb();
+      await db.collection('careCircles').doc(req.circle.id).update({ members });
+
+      await logCircleActivity({
+        circleId: req.circle.id,
+        action: 'MEMBER_REVOKED',
+        details: `Elder revoked access for ${currentMember.name || currentMember.email}`,
+        actor: req.user
+      });
+
+      return res.json({
+        success: true,
+        message: `Access for ${currentMember.name || currentMember.email} has been revoked immediately.`,
+        member: members[memberIndex]
+      });
+    } catch (err) {
+      console.error('Revoke member error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to revoke member access.' });
     }
-
-    const currentMember = members[memberIndex];
-    members[memberIndex] = {
-      ...currentMember,
-      isRevoked: true,
-      revokedAt: new Date().toISOString()
-    };
-
-    const db = getDb();
-    await db.collection('careCircles').doc(req.circle.id).update({ members });
-
-    await logCircleActivity({
-      circleId: req.circle.id,
-      action: 'MEMBER_REVOKED',
-      details: `Elder revoked access for ${currentMember.name || currentMember.email}`,
-      actor: req.user
-    });
-
-    return res.json({
-      success: true,
-      message: `Access for ${currentMember.name || currentMember.email} has been revoked immediately.`,
-      member: members[memberIndex]
-    });
-  } catch (err) {
-    console.error('Revoke member error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to revoke member access.' });
   }
-});
+);
 
 /**
  * Restore previously revoked member access (ELDER ONLY).
  */
-router.post('/:circleId/members/:memberUid/restore', verifyAuthToken, requireCircleAccess, requireElderOnly, async (req, res) => {
-  try {
-    const { memberUid } = req.params;
-    const members = req.circle.members || [];
-    const memberIndex = members.findIndex(m => m.uid === memberUid);
+router.post(
+  '/:circleId/members/:memberUid/restore',
+  verifyAuthToken,
+  requireCircleAccess,
+  requireElderOnly,
+  async (req, res) => {
+    try {
+      const { memberUid } = req.params;
+      const members = req.circle.members || [];
+      const memberIndex = members.findIndex((m) => m.uid === memberUid);
 
-    if (memberIndex === -1) {
-      return res.status(404).json({ success: false, error: 'Member not found in this care circle.' });
+      if (memberIndex === -1) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Member not found in this care circle.' });
+      }
+
+      const currentMember = members[memberIndex];
+      members[memberIndex] = {
+        ...currentMember,
+        isRevoked: false,
+        restoredAt: new Date().toISOString()
+      };
+
+      const db = getDb();
+      await db.collection('careCircles').doc(req.circle.id).update({ members });
+
+      await logCircleActivity({
+        circleId: req.circle.id,
+        action: 'MEMBER_RESTORED',
+        details: `Elder restored access for ${currentMember.name || currentMember.email}`,
+        actor: req.user
+      });
+
+      return res.json({
+        success: true,
+        message: `Access for ${currentMember.name || currentMember.email} has been restored.`,
+        member: members[memberIndex]
+      });
+    } catch (err) {
+      console.error('Restore member error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to restore member access.' });
     }
-
-    const currentMember = members[memberIndex];
-    members[memberIndex] = {
-      ...currentMember,
-      isRevoked: false,
-      restoredAt: new Date().toISOString()
-    };
-
-    const db = getDb();
-    await db.collection('careCircles').doc(req.circle.id).update({ members });
-
-    await logCircleActivity({
-      circleId: req.circle.id,
-      action: 'MEMBER_RESTORED',
-      details: `Elder restored access for ${currentMember.name || currentMember.email}`,
-      actor: req.user
-    });
-
-    return res.json({
-      success: true,
-      message: `Access for ${currentMember.name || currentMember.email} has been restored.`,
-      member: members[memberIndex]
-    });
-  } catch (err) {
-    console.error('Restore member error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to restore member access.' });
   }
-});
+);
 
 /**
  * Activity log showing who changed what in the circle (ELDER ONLY or Circle Members).
@@ -533,32 +652,41 @@ router.get('/:circleId/weekly-summary', verifyAuthToken, requireCircleAccess, as
     });
   } catch (err) {
     console.error('Get weekly summary error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to generate weekly family summary.' });
+    return res
+      .status(500)
+      .json({ success: false, error: 'Failed to generate weekly family summary.' });
   }
 });
 
 /**
  * Dispatch Weekly Family Summary Email to allowed circle members.
  */
-router.post('/:circleId/weekly-summary/send', verifyAuthToken, requireCircleAccess, async (req, res) => {
-  try {
-    const referenceDate = req.body?.referenceDate ? new Date(req.body.referenceDate) : null;
-    const result = await processWeeklySummaryForCircle({
-      circle: req.circle,
-      referenceDateObj: referenceDate,
-      sendEmail: true,
-      forceSend: true
-    });
+router.post(
+  '/:circleId/weekly-summary/send',
+  verifyAuthToken,
+  requireCircleAccess,
+  async (req, res) => {
+    try {
+      const referenceDate = req.body?.referenceDate ? new Date(req.body.referenceDate) : null;
+      const result = await processWeeklySummaryForCircle({
+        circle: req.circle,
+        referenceDateObj: referenceDate,
+        sendEmail: true,
+        forceSend: true
+      });
 
-    return res.json({
-      success: true,
-      message: `Weekly summary successfully dispatched to ${result.emailsSent} allowed recipient(s).`,
-      summary: result
-    });
-  } catch (err) {
-    console.error('Send weekly summary error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to dispatch weekly family summary.' });
+      return res.json({
+        success: true,
+        message: `Weekly summary successfully dispatched to ${result.emailsSent} allowed recipient(s).`,
+        summary: result
+      });
+    } catch (err) {
+      console.error('Send weekly summary error:', err);
+      return res
+        .status(500)
+        .json({ success: false, error: 'Failed to dispatch weekly family summary.' });
+    }
   }
-});
+);
 
 export default router;

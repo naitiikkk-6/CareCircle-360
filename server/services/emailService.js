@@ -4,10 +4,18 @@ import { config } from '../config.js';
 let transporter = null;
 export let sentEmailsLog = []; // In-memory audit log for verification in tests and dashboard
 
+/**
+ * Clears the in-memory sent email audit log (used between test runs).
+ */
 export function clearSentEmailsLog() {
   sentEmailsLog = [];
 }
 
+/**
+ * Returns a copy of the in-memory sent email audit log.
+ *
+ * @returns {Array<Object>} Logged email records.
+ */
 export function getSentEmailsLog() {
   return [...sentEmailsLog];
 }
@@ -39,6 +47,16 @@ function getTransporter() {
   return null;
 }
 
+/**
+ * Dispatches an email via SMTP or records it in the in-memory mock log.
+ *
+ * @param {Object} options
+ * @param {string} options.to - Recipient email.
+ * @param {string} options.subject - Email subject line.
+ * @param {string} [options.html] - HTML email body.
+ * @param {string} [options.text] - Plain text email body.
+ * @returns {Promise<{ success: boolean, messageId?: string, simulated?: boolean, mock?: boolean, error?: string }>}
+ */
 export async function sendEmail({ to, subject, html, text }) {
   const mailRecord = {
     from: config.smtp.from,
@@ -54,7 +72,6 @@ export async function sendEmail({ to, subject, html, text }) {
 
   // Safe mock mode for local development and automated tests
   if (config.emailMockMode) {
-    console.log(`[Email Mock Log] To: ${to} | Subject: "${subject}"`);
     return {
       success: true,
       simulated: true,
@@ -73,7 +90,6 @@ export async function sendEmail({ to, subject, html, text }) {
         text: mailRecord.text,
         html: mailRecord.html
       });
-      console.log(`[Email Sent] MessageId: ${info.messageId} to ${to} - Subject: ${subject}`);
       return { success: true, messageId: info.messageId, simulated: false };
     } catch (err) {
       console.error(`[Email Error] Failed sending to ${to}:`, err.message);
@@ -81,7 +97,6 @@ export async function sendEmail({ to, subject, html, text }) {
     }
   }
 
-  console.log(`[Email Mock Fallback] To: ${to} | Subject: "${subject}"`);
   return { success: true, simulated: true, mock: true };
 }
 
@@ -90,7 +105,14 @@ export async function sendEmail({ to, subject, html, text }) {
  * Includes medicine name, scheduled time, and who it is for.
  * Does not include sensitive health details beyond what is needed.
  */
-export async function sendUpcomingDoseReminder({ to, elderName, medicineName, strength, scheduledTime, instructions }) {
+export async function sendUpcomingDoseReminder({
+  to,
+  elderName,
+  medicineName,
+  strength,
+  scheduledTime,
+  instructions
+}) {
   const subject = `Medication Reminder: ${elderName} - ${medicineName} at ${scheduledTime}`;
   const plainText = [
     `Hello,`,
@@ -101,7 +123,9 @@ export async function sendUpcomingDoseReminder({ to, elderName, medicineName, st
     `Please record the dose as Taken in CareCircle 360 once completed.`,
     ``,
     `- CareCircle 360`
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: auto; padding: 24px; border: 1px solid #dadce0; border-radius: 8px;">
@@ -142,14 +166,20 @@ export async function sendMissedDoseEscalation({
     ``,
     `A scheduled dose of ${medicineName} (${strength || 'standard dose'}) at ${scheduledTime} was not recorded as taken for ${elderName}.`,
     confirmUrl ? `` : null,
-    confirmUrl ? `If you have already taken this medicine, click this secure link to confirm with one click:` : null,
+    confirmUrl
+      ? `If you have already taken this medicine, click this secure link to confirm with one click:`
+      : null,
     confirmUrl ? confirmUrl : null,
     confirmUrl ? `(This link expires in 24 hours and uses a secure signed token)` : null,
     ``,
-    tier > 1 ? `Please check in with ${elderName} to verify their well-being and assist if necessary.` : `Please record the dose as Taken as soon as you have taken it.`,
+    tier > 1
+      ? `Please check in with ${elderName} to verify their well-being and assist if necessary.`
+      : `Please record the dose as Taken as soon as you have taken it.`,
     ``,
     `- CareCircle 360 (${circleName || 'Family Care Circle'})`
-  ].filter(line => line !== null).join('\n');
+  ]
+    .filter((line) => line !== null)
+    .join('\n');
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: auto; padding: 24px; border: 2px solid #d93025; border-radius: 8px;">
@@ -160,14 +190,18 @@ export async function sendMissedDoseEscalation({
         <p style="margin: 4px 0; font-size: 15px;"><strong>Scheduled Time:</strong> ${scheduledTime}</p>
         <p style="margin: 4px 0; font-size: 14px; color: #c5221f;"><strong>Status:</strong> Marked as Overdue / Missed (Tier ${tier})</p>
       </div>
-      ${confirmUrl ? `
+      ${
+        confirmUrl
+          ? `
         <div style="text-align: center; margin: 24px 0;">
           <a href="${confirmUrl}" style="background-color: #0b57d0; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
             ✓ I Have Taken This Dose
           </a>
           <p style="font-size: 12px; color: #5f6368; margin-top: 8px;">One-click secure confirmation link (expires in 24 hours)</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       <p style="font-size: 14px; color: #3c4043;">
         ${tier > 1 ? `Please check in with ${elderName} or their primary caretaker to ensure their health and safety.` : `Please confirm and log the dose in CareCircle 360 or click the button above.`}
       </p>
@@ -180,10 +214,16 @@ export async function sendMissedDoseEscalation({
 /**
  * Plain, clear doctor appointment reminder email.
  */
-export async function sendAppointmentReminder({ to, elderName, doctorName, purpose, appointmentTime, place }) {
-  const docTitle = (doctorName.startsWith('Dr.') || doctorName.startsWith('Dr '))
-    ? doctorName
-    : `Dr. ${doctorName}`;
+export async function sendAppointmentReminder({
+  to,
+  elderName,
+  doctorName,
+  purpose,
+  appointmentTime,
+  place
+}) {
+  const docTitle =
+    doctorName.startsWith('Dr.') || doctorName.startsWith('Dr ') ? doctorName : `Dr. ${doctorName}`;
   const subject = `Doctor Appointment Reminder: ${elderName} with ${docTitle}`;
   const plainText = [
     `Hello,`,
@@ -216,7 +256,28 @@ export async function sendAppointmentReminder({ to, elderName, doctorName, purpo
   return sendEmail({ to, subject, text: plainText, html });
 }
 
-export async function sendDailyPulseSummary({ to, elderName, date, adherencePercentage, dosesTaken, dosesMissed, totalDoses }) {
+/**
+ * Sends a Daily Care Pulse summary notification email.
+ *
+ * @param {Object} params
+ * @param {string} params.to - Recipient email.
+ * @param {string} params.elderName - Name of the elder.
+ * @param {string} params.date - Date of report (YYYY-MM-DD).
+ * @param {number} params.adherencePercentage - Calculated adherence percentage.
+ * @param {number} params.dosesTaken - Number of doses confirmed taken.
+ * @param {number} params.dosesMissed - Number of doses marked missed.
+ * @param {number} params.totalDoses - Total scheduled doses.
+ * @returns {Promise<Object>} Dispatch result.
+ */
+export async function sendDailyPulseSummary({
+  to,
+  elderName,
+  date,
+  adherencePercentage,
+  dosesTaken,
+  dosesMissed,
+  totalDoses
+}) {
   const subject = `Daily Care Pulse: ${elderName} (${date}) - ${adherencePercentage}% Adherence`;
   const plainText = `Daily Care Pulse for ${elderName} on ${date}: ${adherencePercentage}% adherence (${dosesTaken} of ${totalDoses} doses taken, ${dosesMissed} missed).`;
   const html = `
@@ -231,7 +292,24 @@ export async function sendDailyPulseSummary({ to, elderName, date, adherencePerc
   return sendEmail({ to, subject, text: plainText, html });
 }
 
-export async function sendWeeklyFamilySummary({ to, elderName, weekRange, adherenceRate, summaryText }) {
+/**
+ * Sends the weekly family care digest email.
+ *
+ * @param {Object} params
+ * @param {string} params.to - Recipient email.
+ * @param {string} params.elderName - Name of the elder.
+ * @param {string} params.weekRange - Date range of the digest.
+ * @param {number} params.adherenceRate - Adherence percentage.
+ * @param {string} params.summaryText - Plain language summary text.
+ * @returns {Promise<Object>} Dispatch result.
+ */
+export async function sendWeeklyFamilySummary({
+  to,
+  elderName,
+  weekRange,
+  adherenceRate,
+  summaryText
+}) {
   const subject = `Weekly Care Circle Digest: ${elderName} (${weekRange})`;
   const plainText = `Weekly Care Summary for ${elderName} (${weekRange}): ${adherenceRate}% adherence.\n${summaryText}`;
   const html = `

@@ -23,7 +23,9 @@ test('Email Reminder & Cloud Scheduler Cron System Suite', async (t) => {
     const elderLogin = await request(app).post('/api/auth/demo-login').send({ persona: 'elder' });
     elderToken = elderLogin.body.token;
 
-    const caretakerLogin = await request(app).post('/api/auth/demo-login').send({ persona: 'caretaker' });
+    const caretakerLogin = await request(app)
+      .post('/api/auth/demo-login')
+      .send({ persona: 'caretaker' });
     caretakerToken = caretakerLogin.body.token;
 
     const familyLogin = await request(app).post('/api/auth/demo-login').send({ persona: 'family' });
@@ -59,19 +61,20 @@ test('Email Reminder & Cloud Scheduler Cron System Suite', async (t) => {
       .send({ circleId, passcode: 'cronPass123', role: 'family' });
 
     // Explicitly set member emails for verification
-    await db.collection('careCircles').doc(circleId).update({
-      members: [
-        { uid: 'uid_caretaker', name: 'Priya', email: caretakerEmail, role: 'caretaker' },
-        { uid: 'uid_family', name: 'Arun', email: familyEmail, role: 'family' }
-      ]
-    });
+    await db
+      .collection('careCircles')
+      .doc(circleId)
+      .update({
+        members: [
+          { uid: 'uid_caretaker', name: 'Priya', email: caretakerEmail, role: 'caretaker' },
+          { uid: 'uid_family', name: 'Arun', email: familyEmail, role: 'family' }
+        ]
+      });
   });
 
   await t.test('1. Secret Header Required (Constant-Time Verification)', async () => {
     // 1. Missing secret header
-    const resNoHeader = await request(app)
-      .post('/api/cron/reminders')
-      .send({ circleId });
+    const resNoHeader = await request(app).post('/api/cron/reminders').send({ circleId });
     assert.equal(resNoHeader.status, 401);
     assert.match(resNoHeader.body.error, /Secret header required/i);
 
@@ -171,23 +174,27 @@ test('Email Reminder & Cloud Scheduler Cron System Suite', async (t) => {
     const sent = getSentEmailsLog();
     assert.ok(sent.length > 0);
 
-    const amlodipineEmails = sent.filter(e => e.subject.includes('Amlodipine Besylate'));
+    const amlodipineEmails = sent.filter((e) => e.subject.includes('Amlodipine Besylate'));
     assert.ok(amlodipineEmails.length >= 1);
 
     // Elder receives reminder
-    const elderMail = amlodipineEmails.find(e => e.to === elderEmail);
+    const elderMail = amlodipineEmails.find((e) => e.to === elderEmail);
     assert.ok(elderMail, 'Elder must receive upcoming dose reminder');
     assert.match(elderMail.text, /Rameshji/i);
     assert.match(elderMail.text, /10:10/);
     assert.match(elderMail.text, /Amlodipine Besylate/);
 
     // Caretaker receives reminder
-    const caretakerMail = amlodipineEmails.find(e => e.to === caretakerEmail);
+    const caretakerMail = amlodipineEmails.find((e) => e.to === caretakerEmail);
     assert.ok(caretakerMail, 'Caretaker must receive upcoming dose reminder');
 
     // Family member does NOT receive upcoming intake reminder by default
-    const familyMail = amlodipineEmails.find(e => e.to === familyEmail);
-    assert.equal(familyMail, undefined, 'Family member should not receive intake reminder unless elder enabled it');
+    const familyMail = amlodipineEmails.find((e) => e.to === familyEmail);
+    assert.equal(
+      familyMail,
+      undefined,
+      'Family member should not receive intake reminder unless elder enabled it'
+    );
   });
 
   await t.test('4. Missed Detection: Mark overdue doses as Missed and email alert', async () => {
@@ -255,10 +262,10 @@ test('Email Reminder & Cloud Scheduler Cron System Suite', async (t) => {
 
     // Check missed dose alert email
     const sent = getSentEmailsLog();
-    const missedEmails = sent.filter(e => e.subject.includes('Missed Medication Alert'));
+    const missedEmails = sent.filter((e) => e.subject.includes('Missed Medication Alert'));
     assert.ok(missedEmails.length >= 2, 'Elder, Caretaker and Family receive missed escalations');
 
-    const familyMissedMail = missedEmails.find(e => e.to === familyEmail);
+    const familyMissedMail = missedEmails.find((e) => e.to === familyEmail);
     assert.ok(familyMissedMail, 'Family member must receive safety escalation for missed dose');
     assert.match(familyMissedMail.text, /Metformin Hydrochloride/);
     assert.match(familyMissedMail.text, /Rameshji/);
@@ -320,35 +327,42 @@ test('Email Reminder & Cloud Scheduler Cron System Suite', async (t) => {
 
     // Verify appointment email sent
     const sent = getSentEmailsLog();
-    const apptEmails = sent.filter(e => e.subject.includes('Dr. Sunil Kulkarni'));
+    const apptEmails = sent.filter((e) => e.subject.includes('Dr. Sunil Kulkarni'));
     assert.ok(apptEmails.length >= 1);
     assert.match(apptEmails[0].text, /Apex Diabetes Care/);
     assert.match(apptEmails[0].text, /Endocrinology/);
   });
 
-  await t.test('6. Duplicate Prevention: Subsequent cron execution sends ZERO duplicates', async () => {
-    clearSentEmailsLog();
+  await t.test(
+    '6. Duplicate Prevention: Subsequent cron execution sends ZERO duplicates',
+    async () => {
+      clearSentEmailsLog();
 
-    const refDate = new Date();
+      const refDate = new Date();
 
-    // Run the cron again immediately
-    const cronRes = await request(app)
-      .post('/api/cron/reminders')
-      .set('x-cron-secret', config.cronSecret)
-      .send({
-        circleId,
-        referenceDate: refDate.toISOString()
-      });
+      // Run the cron again immediately
+      const cronRes = await request(app)
+        .post('/api/cron/reminders')
+        .set('x-cron-secret', config.cronSecret)
+        .send({
+          circleId,
+          referenceDate: refDate.toISOString()
+        });
 
-    assert.equal(cronRes.status, 200);
+      assert.equal(cronRes.status, 200);
 
-    // All counts should be 0 because all eligible doses and appointments are already marked as sent
-    assert.equal(cronRes.body.result.upcomingRemindersSent, 0);
-    assert.equal(cronRes.body.result.missedAlertsSent, 0);
-    assert.equal(cronRes.body.result.appointmentRemindersSent, 0);
+      // All counts should be 0 because all eligible doses and appointments are already marked as sent
+      assert.equal(cronRes.body.result.upcomingRemindersSent, 0);
+      assert.equal(cronRes.body.result.missedAlertsSent, 0);
+      assert.equal(cronRes.body.result.appointmentRemindersSent, 0);
 
-    // Zero duplicate emails in log
-    const duplicateEmails = getSentEmailsLog();
-    assert.equal(duplicateEmails.length, 0, 'No duplicate emails should be sent on repeated cron runs');
-  });
+      // Zero duplicate emails in log
+      const duplicateEmails = getSentEmailsLog();
+      assert.equal(
+        duplicateEmails.length,
+        0,
+        'No duplicate emails should be sent on repeated cron runs'
+      );
+    }
+  );
 });

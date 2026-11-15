@@ -4,6 +4,7 @@ import {
   getLocalDateInTimezone,
   getLocalTimeInTimezone
 } from './doseService.js';
+import { DOSE_STATUS, APPOINTMENT_REMINDER_HOURS, TIME_WINDOWS } from '../constants.js';
 
 /**
  * Calculates the comprehensive Daily Care Pulse for the main dashboard.
@@ -12,8 +13,18 @@ import {
  * - Next upcoming dose
  * - Upcoming doctor appointments in order
  * - Active alerts (e.g. missed doses requiring attention)
+ *
+ * @param {Object} params
+ * @param {Object} params.circle - Care circle document.
+ * @param {string|null} [params.targetDateStr=null] - Specific target date (YYYY-MM-DD).
+ * @param {Date|null} [params.referenceDateObj=null] - Date object for time evaluation/testing.
+ * @returns {Promise<Object>} Calculated Daily Care Pulse summary.
  */
-export async function calculateDailyCarePulse({ circle, targetDateStr = null, referenceDateObj = null }) {
+export async function calculateDailyCarePulse({
+  circle,
+  targetDateStr = null,
+  referenceDateObj = null
+}) {
   const db = getDb();
   const timezone = circle.timezone || 'Asia/Kolkata';
   const now = referenceDateObj || new Date();
@@ -22,21 +33,20 @@ export async function calculateDailyCarePulse({ circle, targetDateStr = null, re
   const currentTimeStr = getLocalTimeInTimezone(now, timezone);
 
   // Synchronize doses for today and next 7 days
-  await generateDoseInstancesForCircle(circle, 7);
+  await generateDoseInstancesForCircle(circle, TIME_WINDOWS.DOSES_AHEAD_DAYS);
 
   // 1 & 3. Run independent queries for today's doses and appointments in parallel
   const [dosesSnap, apptsSnap] = await Promise.all([
-    db.collection('doseLogs')
+    db
+      .collection('doseLogs')
       .where('circleId', '==', circle.id)
       .where('scheduledDate', '==', currentDateStr)
       .get(),
-    db.collection('appointments')
-      .where('circleId', '==', circle.id)
-      .get()
+    db.collection('appointments').where('circleId', '==', circle.id).get()
   ]);
 
   const todayDoses = [];
-  dosesSnap.forEach(d => todayDoses.push(d.data()));
+  dosesSnap.forEach((d) => todayDoses.push(d.data()));
 
   // Sort by time ascending
   todayDoses.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
@@ -45,26 +55,32 @@ export async function calculateDailyCarePulse({ circle, targetDateStr = null, re
   let missedCount = 0;
   let pendingCount = 0;
 
-  todayDoses.forEach(d => {
-    if (d.status === 'Taken') takenCount++;
-    else if (d.status === 'Missed') missedCount++;
+  todayDoses.forEach((d) => {
+    if (d.status === DOSE_STATUS.TAKEN) takenCount++;
+    else if (d.status === DOSE_STATUS.MISSED) missedCount++;
     else pendingCount++;
   });
 
   const totalDosesToday = todayDoses.length;
   const evaluatedTotal = takenCount + missedCount;
-  const adherenceRate = evaluatedTotal > 0
-    ? Math.round((takenCount / evaluatedTotal) * 100)
-    : (totalDosesToday > 0 ? 100 : 100);
+  const adherenceRate =
+    evaluatedTotal > 0
+      ? Math.round((takenCount / evaluatedTotal) * 100)
+      : totalDosesToday > 0
+        ? 100
+        : 100;
 
   // Completion indicator text
-  const completionText = totalDosesToday > 0
-    ? `${takenCount} of ${totalDosesToday} doses taken (${Math.round((takenCount / totalDosesToday) * 100)}% complete)`
-    : 'No medications scheduled for today';
+  const completionText =
+    totalDosesToday > 0
+      ? `${takenCount} of ${totalDosesToday} doses taken (${Math.round((takenCount / totalDosesToday) * 100)}% complete)`
+      : 'No medications scheduled for today';
 
   // 2. Determine next upcoming dose
-  let nextUpcomingDose = null;
-  const upcomingPending = todayDoses.filter(d => d.status === 'Pending' && d.scheduledTime >= currentTimeStr);
+  let nextUpcomingDose;
+  const upcomingPending = todayDoses.filter(
+    (d) => d.status === DOSE_STATUS.PENDING && d.scheduledTime >= currentTimeStr
+  );
 
   if (upcomingPending.length > 0) {
     const next = upcomingPending[0];
@@ -78,7 +94,7 @@ export async function calculateDailyCarePulse({ circle, targetDateStr = null, re
     };
   } else if (pendingCount > 0) {
     // If pending doses exist but their scheduled time is earlier today
-    const earliestPending = todayDoses.filter(d => d.status === 'Pending')[0];
+    const earliestPending = todayDoses.filter((d) => d.status === DOSE_STATUS.PENDING)[0];
     nextUpcomingDose = {
       id: earliestPending.id,
       medicineName: earliestPending.medicineName,
@@ -101,16 +117,20 @@ export async function calculateDailyCarePulse({ circle, targetDateStr = null, re
 
   // 3. Process upcoming appointments (in order)
   const allAppts = [];
-  apptsSnap.forEach(d => allAppts.push(d.data()));
+  apptsSnap.forEach((d) => allAppts.push(d.data()));
 
   const upcomingAppts = allAppts
-    .filter(a => a.status === 'Upcoming' && new Date(a.datetime).getTime() >= (now.getTime() - 2 * 60 * 60 * 1000))
+    .filter(
+      (a) =>
+        a.status === 'Upcoming' &&
+        new Date(a.datetime).getTime() >= now.getTime() - 2 * 60 * 60 * 1000
+    )
     .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
     .slice(0, 5); // top 5 upcoming
 
   // 4. Active alerts (text labels, never color alone)
   const activeAlerts = [];
-  const missedToday = todayDoses.filter(d => d.status === 'Missed');
+  const missedToday = todayDoses.filter((d) => d.status === DOSE_STATUS.MISSED);
 
   if (missedToday.length > 0) {
     activeAlerts.push({
@@ -118,19 +138,22 @@ export async function calculateDailyCarePulse({ circle, targetDateStr = null, re
       level: 'warning',
       badgeText: '[ACTION REQUIRED: MISSED DOSE]',
       title: `${missedToday.length} Missed Dose${missedToday.length > 1 ? 's' : ''} Today`,
-      message: `Missed: ${missedToday.map(m => `${m.medicineName} (${m.scheduledTime})`).join(', ')}. Please check in with ${circle.elderName || 'the elder'}.`
+      message: `Missed: ${missedToday.map((m) => `${m.medicineName} (${m.scheduledTime})`).join(', ')}. Please check in with ${circle.elderName || 'the elder'}.`
     });
   }
 
   // Appointment alert if any appointment is within 24 hours
-  const soonAppts = upcomingAppts.filter(a => {
+  const soonAppts = upcomingAppts.filter((a) => {
     const diffHours = (new Date(a.datetime).getTime() - now.getTime()) / (1000 * 60 * 60);
-    return diffHours >= 0 && diffHours <= 24;
+    return diffHours >= 0 && diffHours <= APPOINTMENT_REMINDER_HOURS;
   });
 
   if (soonAppts.length > 0) {
     const first = soonAppts[0];
-    const apptTime = new Date(first.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const apptTime = new Date(first.datetime).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
     activeAlerts.push({
       type: 'appointment-soon',
       level: 'info',

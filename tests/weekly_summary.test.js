@@ -18,11 +18,8 @@ import {
 
 test('Weekly Family Summary Suite: Aggregation, Gemini / Fallback & Recipient Permissions', async (t) => {
   let elderToken = '';
-  let elderUid = '';
   let caretakerToken = '';
-  let caretakerUid = '';
   let familyAllowedToken = '';
-  let familyAllowedUid = '';
   let familyBlockedToken = '';
   let familyBlockedUid = '';
   let circleId = '';
@@ -42,7 +39,7 @@ test('Weekly Family Summary Suite: Aggregation, Gemini / Fallback & Recipient Pe
     });
     assert.equal(elderRes.status, 201);
     elderToken = elderRes.body.token;
-    elderUid = elderRes.body.user.uid;
+    assert.ok(elderRes.body.user.uid);
 
     const circleRes = await request(app)
       .post('/api/circles/create')
@@ -65,7 +62,7 @@ test('Weekly Family Summary Suite: Aggregation, Gemini / Fallback & Recipient Pe
     });
     assert.equal(caretakerRes.status, 201);
     caretakerToken = caretakerRes.body.token;
-    caretakerUid = caretakerRes.body.user.uid;
+    assert.ok(caretakerRes.body.user.uid);
 
     await request(app)
       .post('/api/circles/join')
@@ -81,7 +78,7 @@ test('Weekly Family Summary Suite: Aggregation, Gemini / Fallback & Recipient Pe
     });
     assert.equal(fam1Res.status, 201);
     familyAllowedToken = fam1Res.body.token;
-    familyAllowedUid = fam1Res.body.user.uid;
+    assert.ok(fam1Res.body.user.uid);
 
     await request(app)
       .post('/api/circles/join')
@@ -136,16 +133,76 @@ test('Weekly Family Summary Suite: Aggregation, Gemini / Fallback & Recipient Pe
     // - 7 Taken
     // - 3 Missed: 2 in morning (08:00, 09:00), 1 in evening (19:00)
     const seedDoses = [
-      { id: `w_dose_1_${Date.now()}`, date: '2026-11-10', time: '08:00', status: 'Taken', med: 'Metformin' },
-      { id: `w_dose_2_${Date.now()}`, date: '2026-11-10', time: '13:00', status: 'Taken', med: 'Multivitamin' },
-      { id: `w_dose_3_${Date.now()}`, date: '2026-11-11', time: '08:00', status: 'Missed', med: 'Metformin' }, // Morning Missed
-      { id: `w_dose_4_${Date.now()}`, date: '2026-11-11', time: '20:00', status: 'Taken', med: 'Atorvastatin' },
-      { id: `w_dose_5_${Date.now()}`, date: '2026-11-12', time: '08:30', status: 'Missed', med: 'Metformin' }, // Morning Missed
-      { id: `w_dose_6_${Date.now()}`, date: '2026-11-13', time: '14:00', status: 'Taken', med: 'Calcium' },
-      { id: `w_dose_7_${Date.now()}`, date: '2026-11-13', time: '19:30', status: 'Missed', med: 'BP Tablet' }, // Evening Missed
-      { id: `w_dose_8_${Date.now()}`, date: '2026-11-14', time: '08:00', status: 'Taken', med: 'Metformin' },
-      { id: `w_dose_9_${Date.now()}`, date: '2026-11-14', time: '21:30', status: 'Taken', med: 'Sleep Aid' },
-      { id: `w_dose_10_${Date.now()}`, date: '2026-11-15', time: '08:00', status: 'Taken', med: 'Metformin' }
+      {
+        id: `w_dose_1_${Date.now()}`,
+        date: '2026-11-10',
+        time: '08:00',
+        status: 'Taken',
+        med: 'Metformin'
+      },
+      {
+        id: `w_dose_2_${Date.now()}`,
+        date: '2026-11-10',
+        time: '13:00',
+        status: 'Taken',
+        med: 'Multivitamin'
+      },
+      {
+        id: `w_dose_3_${Date.now()}`,
+        date: '2026-11-11',
+        time: '08:00',
+        status: 'Missed',
+        med: 'Metformin'
+      }, // Morning Missed
+      {
+        id: `w_dose_4_${Date.now()}`,
+        date: '2026-11-11',
+        time: '20:00',
+        status: 'Taken',
+        med: 'Atorvastatin'
+      },
+      {
+        id: `w_dose_5_${Date.now()}`,
+        date: '2026-11-12',
+        time: '08:30',
+        status: 'Missed',
+        med: 'Metformin'
+      }, // Morning Missed
+      {
+        id: `w_dose_6_${Date.now()}`,
+        date: '2026-11-13',
+        time: '14:00',
+        status: 'Taken',
+        med: 'Calcium'
+      },
+      {
+        id: `w_dose_7_${Date.now()}`,
+        date: '2026-11-13',
+        time: '19:30',
+        status: 'Missed',
+        med: 'BP Tablet'
+      }, // Evening Missed
+      {
+        id: `w_dose_8_${Date.now()}`,
+        date: '2026-11-14',
+        time: '08:00',
+        status: 'Taken',
+        med: 'Metformin'
+      },
+      {
+        id: `w_dose_9_${Date.now()}`,
+        date: '2026-11-14',
+        time: '21:30',
+        status: 'Taken',
+        med: 'Sleep Aid'
+      },
+      {
+        id: `w_dose_10_${Date.now()}`,
+        date: '2026-11-15',
+        time: '08:00',
+        status: 'Taken',
+        med: 'Metformin'
+      }
     ];
 
     for (const d of seedDoses) {
@@ -181,99 +238,123 @@ test('Weekly Family Summary Suite: Aggregation, Gemini / Fallback & Recipient Pe
     assert.equal(summaryData.elderFirstName, 'Kamla');
   });
 
-  await t.test('2. Fallback Behaviour: Safe template provides 3 to 5 plain sentences with zero medical advice', async () => {
-    // Generate deterministic template summary
-    const templateOutput = generateTemplateWeeklySummary({
-      elderFirstName: 'Kamla',
-      adherenceRate: 70,
-      totalDue: 10,
-      takenCount: 7,
-      missedCount: 3,
-      missedByTimeOfDay: { morning: 2, afternoon: 0, evening: 1, night: 0 },
-      mostMissedSlot: 'morning'
-    });
+  await t.test(
+    '2. Fallback Behaviour: Safe template provides 3 to 5 plain sentences with zero medical advice',
+    async () => {
+      // Generate deterministic template summary
+      const templateOutput = generateTemplateWeeklySummary({
+        elderFirstName: 'Kamla',
+        adherenceRate: 70,
+        totalDue: 10,
+        takenCount: 7,
+        missedCount: 3,
+        missedByTimeOfDay: { morning: 2, afternoon: 0, evening: 1, night: 0 },
+        mostMissedSlot: 'morning'
+      });
 
-    assert.ok(typeof templateOutput === 'string');
-    assert.ok(templateOutput.length > 50);
+      assert.ok(typeof templateOutput === 'string');
+      assert.ok(templateOutput.length > 50);
 
-    // Sentence count check: split on sentence boundaries
-    const sentences = templateOutput.match(/[^.!?]+[.!?]+/g) || [];
-    assert.ok(sentences.length >= 3 && sentences.length <= 5, `Expected 3 to 5 sentences, got ${sentences.length}`);
+      // Sentence count check: split on sentence boundaries
+      const sentences = templateOutput.match(/[^.!?]+[.!?]+/g) || [];
+      assert.ok(
+        sentences.length >= 3 && sentences.length <= 5,
+        `Expected 3 to 5 sentences, got ${sentences.length}`
+      );
 
-    // Privacy check: only first name used
-    assert.match(templateOutput, /Kamla/);
-    assert.doesNotMatch(templateOutput, /Devi/);
+      // Privacy check: only first name used
+      assert.match(templateOutput, /Kamla/);
+      assert.doesNotMatch(templateOutput, /Devi/);
 
-    // Context check: mentions morning slot as most missed
-    assert.match(templateOutput, /morning/i);
-    assert.match(templateOutput, /70%/);
+      // Context check: mentions morning slot as most missed
+      assert.match(templateOutput, /morning/i);
+      assert.match(templateOutput, /70%/);
 
-    // Safety checks: no medical advice or suggesting changes
-    assert.doesNotMatch(templateOutput, /change.*medicine|alter.*dose|consult.*physician|doctor.*advised|increase.*dosage/i);
+      // Safety checks: no medical advice or suggesting changes
+      assert.doesNotMatch(
+        templateOutput,
+        /change.*medicine|alter.*dose|consult.*physician|doctor.*advised|increase.*dosage/i
+      );
 
-    // Test Gemini service call in fallback mode (when no API key or on error)
-    const geminiRes = await generateWeeklyFamilySummaryWithGemini({
-      elderFirstName: 'Kamla',
-      adherenceRate: 70,
-      totalDue: 10,
-      takenCount: 7,
-      missedCount: 3,
-      missedByTimeOfDay: { morning: 2, afternoon: 0, evening: 1, night: 0 },
-      mostMissedSlot: 'morning'
-    });
+      // Test Gemini service call in fallback mode (when no API key or on error)
+      const geminiRes = await generateWeeklyFamilySummaryWithGemini({
+        elderFirstName: 'Kamla',
+        adherenceRate: 70,
+        totalDue: 10,
+        takenCount: 7,
+        missedCount: 3,
+        missedByTimeOfDay: { morning: 2, afternoon: 0, evening: 1, night: 0 },
+        mostMissedSlot: 'morning'
+      });
 
-    assert.ok(geminiRes.summaryText);
-    const geminiSentences = geminiRes.summaryText.match(/[^.!?]+[.!?]+/g) || [];
-    assert.ok(geminiSentences.length >= 3 && geminiSentences.length <= 5);
-  });
+      assert.ok(geminiRes.summaryText);
+      const geminiSentences = geminiRes.summaryText.match(/[^.!?]+[.!?]+/g) || [];
+      assert.ok(geminiSentences.length >= 3 && geminiSentences.length <= 5);
+    }
+  );
 
-  await t.test('3. Recipient Permissions: Only elder-allowed members receive the weekly summary email', async () => {
-    clearSentEmailsLog();
-    const db = getDb();
-    const circleDoc = (await db.collection('careCircles').doc(circleId).get()).data();
+  await t.test(
+    '3. Recipient Permissions: Only elder-allowed members receive the weekly summary email',
+    async () => {
+      clearSentEmailsLog();
+      const db = getDb();
+      const circleDoc = (await db.collection('careCircles').doc(circleId).get()).data();
 
-    // Verify recipient filtering logic
-    const recipients = getWeeklySummaryRecipients(circleDoc);
+      // Verify recipient filtering logic
+      const recipients = getWeeklySummaryRecipients(circleDoc);
 
-    // Elder is always included
-    assert.ok(recipients.includes(elderEmail), 'Elder must receive weekly summary');
+      // Elder is always included
+      assert.ok(recipients.includes(elderEmail), 'Elder must receive weekly summary');
 
-    // Caretaker is included (alertWeeklySummary default true)
-    assert.ok(recipients.includes(caretakerEmail), 'Permitted caretaker must receive weekly summary');
+      // Caretaker is included (alertWeeklySummary default true)
+      assert.ok(
+        recipients.includes(caretakerEmail),
+        'Permitted caretaker must receive weekly summary'
+      );
 
-    // Family Member 1 (Allowed) is included
-    assert.ok(recipients.includes(familyAllowedEmail), 'Allowed family member must receive weekly summary');
+      // Family Member 1 (Allowed) is included
+      assert.ok(
+        recipients.includes(familyAllowedEmail),
+        'Allowed family member must receive weekly summary'
+      );
 
-    // Family Member 2 (Explicitly blocked by Elder) is EXCLUDED
-    assert.equal(
-      recipients.includes(familyBlockedEmail),
-      false,
-      'Family member opted out / blocked by Elder must NOT receive weekly summary'
-    );
+      // Family Member 2 (Explicitly blocked by Elder) is EXCLUDED
+      assert.equal(
+        recipients.includes(familyBlockedEmail),
+        false,
+        'Family member opted out / blocked by Elder must NOT receive weekly summary'
+      );
 
-    // Dispatch the weekly summary via processWeeklySummaryForCircle
-    const dispatchRes = await processWeeklySummaryForCircle({
-      circle: circleDoc,
-      sendEmail: true,
-      forceSend: true
-    });
+      // Dispatch the weekly summary via processWeeklySummaryForCircle
+      const dispatchRes = await processWeeklySummaryForCircle({
+        circle: circleDoc,
+        sendEmail: true,
+        forceSend: true
+      });
 
-    assert.equal(dispatchRes.emailsSent, 3, 'Exactly 3 emails sent (Elder, Caretaker, Allowed Family)');
+      assert.equal(
+        dispatchRes.emailsSent,
+        3,
+        'Exactly 3 emails sent (Elder, Caretaker, Allowed Family)'
+      );
 
-    const sentMails = getSentEmailsLog().filter(e => e.subject.includes('Weekly Care Circle Digest'));
-    assert.equal(sentMails.length, 3);
+      const sentMails = getSentEmailsLog().filter((e) =>
+        e.subject.includes('Weekly Care Circle Digest')
+      );
+      assert.equal(sentMails.length, 3);
 
-    const sentToAddresses = sentMails.map(e => e.to);
-    assert.ok(sentToAddresses.includes(elderEmail));
-    assert.ok(sentToAddresses.includes(caretakerEmail));
-    assert.ok(sentToAddresses.includes(familyAllowedEmail));
-    assert.equal(sentToAddresses.includes(familyBlockedEmail), false);
+      const sentToAddresses = sentMails.map((e) => e.to);
+      assert.ok(sentToAddresses.includes(elderEmail));
+      assert.ok(sentToAddresses.includes(caretakerEmail));
+      assert.ok(sentToAddresses.includes(familyAllowedEmail));
+      assert.equal(sentToAddresses.includes(familyBlockedEmail), false);
 
-    // Verify email text format
-    const sampleMail = sentMails[0];
-    assert.match(sampleMail.text, /Weekly Care Summary for Kamla/i);
-    assert.match(sampleMail.text, /70% adherence/i);
-  });
+      // Verify email text format
+      const sampleMail = sentMails[0];
+      assert.match(sampleMail.text, /Weekly Care Summary for Kamla/i);
+      assert.match(sampleMail.text, /70% adherence/i);
+    }
+  );
 
   await t.test('4. Dashboard API & Scheduler Cron Integration', async () => {
     // 1. GET /api/circles/:circleId/weekly-summary
@@ -288,12 +369,14 @@ test('Weekly Family Summary Suite: Aggregation, Gemini / Fallback & Recipient Pe
     assert.ok(getSummaryRes.body.summary.summaryText);
 
     // 2. Non-circle member cannot access weekly summary
-    const otherUserRes = await request(app).post('/api/auth/register').send({
-      email: `stranger.weekly.${Date.now()}@carecircle.demo`,
-      password: 'password123',
-      name: 'Stranger Danger',
-      role: 'family'
-    });
+    const otherUserRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: `stranger.weekly.${Date.now()}@carecircle.demo`,
+        password: 'password123',
+        name: 'Stranger Danger',
+        role: 'family'
+      });
     const strangerToken = otherUserRes.body.token;
 
     const forbiddenRes = await request(app)

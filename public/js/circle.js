@@ -143,7 +143,7 @@ class CircleManager {
     }
 
     // Modal close buttons
-    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    document.querySelectorAll('[data-close-modal]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const modalId = e.currentTarget.getAttribute('data-close-modal');
         const modal = document.getElementById(modalId);
@@ -164,9 +164,10 @@ class CircleManager {
       }
 
       // Check if previous active circle is valid
-      const targetId = api.activeCircleId && this.circles.some(c => c.id === api.activeCircleId)
-        ? api.activeCircleId
-        : this.circles[0].id;
+      const targetId =
+        api.activeCircleId && this.circles.some((c) => c.id === api.activeCircleId)
+          ? api.activeCircleId
+          : this.circles[0].id;
 
       await this.setActiveCircle(targetId);
     } catch (err) {
@@ -206,13 +207,15 @@ class CircleManager {
         await this.loadActivityLog();
 
         a11y.announce(`Active Care Circle: ${this.activeCircle.name}. Your role: ${this.userRole}`);
-        window.dispatchEvent(new CustomEvent('circle:changed', {
-          detail: {
-            circle: this.activeCircle,
-            userRole: this.userRole,
-            isElder: this.isElder
-          }
-        }));
+        window.dispatchEvent(
+          new CustomEvent('circle:changed', {
+            detail: {
+              circle: this.activeCircle,
+              userRole: this.userRole,
+              isElder: this.isElder
+            }
+          })
+        );
       }
     } catch (err) {
       console.error('Failed to set active circle:', err);
@@ -224,7 +227,7 @@ class CircleManager {
     if (!selector) return;
 
     selector.innerHTML = '';
-    this.circles.forEach(c => {
+    this.circles.forEach((c) => {
       const opt = document.createElement('option');
       opt.value = c.id;
       opt.textContent = `${c.name} (${c.myRole})`;
@@ -278,14 +281,15 @@ class CircleManager {
       listEl.innerHTML = '';
       const members = this.activeCircle.members || [];
       if (members.length === 0) {
-        listEl.innerHTML = '<li class="empty-state">No caretakers or family members joined yet. Share the Circle ID and Passcode to invite your care circle!</li>';
+        listEl.innerHTML =
+          '<li class="empty-state">No caretakers or family members joined yet. Share the Circle ID and Passcode to invite your care circle!</li>';
       } else {
-        members.forEach(m => {
+        members.forEach((m) => {
           const li = document.createElement('li');
           const isRevoked = Boolean(m.isRevoked);
           li.className = `member-card ${isRevoked ? 'member-revoked' : ''}`;
 
-          let actionsHtml = '';
+          let actionsHtml;
           if (this.isElder) {
             if (isRevoked) {
               actionsHtml = `
@@ -329,7 +333,7 @@ class CircleManager {
     if (this.isElder) {
       panel.classList.remove('hidden');
       const perms = this.activeCircle.permissions || {};
-      
+
       const setCheckbox = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.checked = Boolean(val);
@@ -355,7 +359,7 @@ class CircleManager {
   }
 
   openMemberPermissionsModal(uid) {
-    const member = (this.activeCircle?.members || []).find(m => m.uid === uid);
+    const member = (this.activeCircle?.members || []).find((m) => m.uid === uid);
     if (!member) return;
 
     document.getElementById('edit-member-uid').value = member.uid;
@@ -379,12 +383,24 @@ class CircleManager {
     setCheck('mperm-view-readings', mPerms.canViewReadings !== false);
 
     // Edit
-    setCheck('mperm-edit-meds', mPerms.canEditMedicines !== undefined ? mPerms.canEditMedicines : isCaretaker);
-    setCheck('mperm-edit-doses', mPerms.canEditDoses !== undefined ? mPerms.canEditDoses : isCaretaker);
-    setCheck('mperm-edit-appts', mPerms.canEditAppointments !== undefined ? mPerms.canEditAppointments : isCaretaker);
+    setCheck(
+      'mperm-edit-meds',
+      mPerms.canEditMedicines !== undefined ? mPerms.canEditMedicines : isCaretaker
+    );
+    setCheck(
+      'mperm-edit-doses',
+      mPerms.canEditDoses !== undefined ? mPerms.canEditDoses : isCaretaker
+    );
+    setCheck(
+      'mperm-edit-appts',
+      mPerms.canEditAppointments !== undefined ? mPerms.canEditAppointments : isCaretaker
+    );
 
     // Alerts
-    setCheck('mperm-alert-intake', mPerms.alertIntakeReminders !== undefined ? mPerms.alertIntakeReminders : isCaretaker);
+    setCheck(
+      'mperm-alert-intake',
+      mPerms.alertIntakeReminders !== undefined ? mPerms.alertIntakeReminders : isCaretaker
+    );
     setCheck('mperm-alert-missed', mPerms.alertMissedDoses !== false);
     setCheck('mperm-alert-appts', mPerms.alertAppointments !== false);
     setCheck('mperm-alert-weekly', mPerms.alertWeeklySummary !== false);
@@ -412,7 +428,10 @@ class CircleManager {
     };
 
     try {
-      const res = await api.put(`/api/circles/${this.activeCircle.id}/members/${memberUid}/permissions`, { permissions });
+      const res = await api.put(
+        `/api/circles/${this.activeCircle.id}/members/${memberUid}/permissions`,
+        { permissions }
+      );
       if (res.success) {
         document.getElementById('modal-member-permissions').classList.add('hidden');
         a11y.announce('Member permissions updated successfully');
@@ -426,15 +445,21 @@ class CircleManager {
 
   async handleRevokeMember(memberUid) {
     if (!this.isElder || !this.activeCircle) return;
-    const member = (this.activeCircle.members || []).find(m => m.uid === memberUid);
+    const member = (this.activeCircle.members || []).find((m) => m.uid === memberUid);
     const memberName = member ? member.name : 'this member';
 
-    if (!confirm(`Are you sure you want to revoke access for ${memberName}? They will be immediately blocked from accessing this Care Circle.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to revoke access for ${memberName}? They will be immediately blocked from accessing this Care Circle.`
+      )
+    ) {
       return;
     }
 
     try {
-      const res = await api.post(`/api/circles/${this.activeCircle.id}/members/${memberUid}/revoke`);
+      const res = await api.post(
+        `/api/circles/${this.activeCircle.id}/members/${memberUid}/revoke`
+      );
       if (res.success) {
         const modal = document.getElementById('modal-member-permissions');
         if (modal) modal.classList.add('hidden');
@@ -450,7 +475,9 @@ class CircleManager {
   async handleRestoreMember(memberUid) {
     if (!this.isElder || !this.activeCircle) return;
     try {
-      const res = await api.post(`/api/circles/${this.activeCircle.id}/members/${memberUid}/restore`);
+      const res = await api.post(
+        `/api/circles/${this.activeCircle.id}/members/${memberUid}/restore`
+      );
       if (res.success) {
         a11y.announce('Member access restored');
         await this.setActiveCircle(this.activeCircle.id);
@@ -470,12 +497,13 @@ class CircleManager {
       const logs = res.logs || [];
 
       if (logs.length === 0) {
-        listEl.innerHTML = '<li class="empty-state">No recorded activity yet. Actions such as medication changes, logged doses, and sharing updates will appear here.</li>';
+        listEl.innerHTML =
+          '<li class="empty-state">No recorded activity yet. Actions such as medication changes, logged doses, and sharing updates will appear here.</li>';
         return;
       }
 
       listEl.innerHTML = '';
-      logs.forEach(entry => {
+      logs.forEach((entry) => {
         const li = document.createElement('li');
         li.className = 'activity-log-item';
 
@@ -502,7 +530,8 @@ class CircleManager {
       });
     } catch (err) {
       console.warn('Failed to load activity log:', err);
-      listEl.innerHTML = '<li class="text-muted"><small>Activity log available to Care Circle members.</small></li>';
+      listEl.innerHTML =
+        '<li class="text-muted"><small>Activity log available to Care Circle members.</small></li>';
     }
   }
 
@@ -576,11 +605,18 @@ class CircleManager {
       familyCanManageMeds: document.getElementById('perm-family-manage-meds').checked,
       familyCanManageAppointments: document.getElementById('perm-family-appts').checked,
       familyCanViewVitals: document.getElementById('perm-family-vitals').checked,
-      familyCanReceiveWeeklySummary: document.getElementById('perm-family-weekly-summary')?.checked !== false
+      familyCanReceiveWeeklySummary:
+        document.getElementById('perm-family-weekly-summary')?.checked !== false
     };
 
-    const caretakerDelay = parseInt(document.getElementById('escalation-caretaker-delay')?.value || '15', 10);
-    const familyDelay = parseInt(document.getElementById('escalation-family-delay')?.value || '30', 10);
+    const caretakerDelay = parseInt(
+      document.getElementById('escalation-caretaker-delay')?.value || '15',
+      10
+    );
+    const familyDelay = parseInt(
+      document.getElementById('escalation-family-delay')?.value || '30',
+      10
+    );
 
     try {
       const res = await api.put(`/api/circles/${this.activeCircle.id}/permissions`, {

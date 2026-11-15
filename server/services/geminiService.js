@@ -16,13 +16,28 @@ function getGeminiClient() {
   return null;
 }
 
-const SAFETY_DISCLAIMER = 'CareCircle 360 AI Safety Protocol: Information is derived strictly from packaging text. Never take or alter medication without consulting a certified doctor or licensed pharmacist.';
+const SAFETY_DISCLAIMER =
+  'CareCircle 360 AI Safety Protocol: Information is derived strictly from packaging text. Never take or alter medication without consulting a certified doctor or licensed pharmacist.';
 
 /**
  * Server-side MediGuide AI packaging text scanner and analyzer.
  * Accepts either extracted packaging text or image base64.
  */
-export async function analyzeMedicinePackaging({ packagingText, imageBase64, mimeType = 'image/jpeg' }) {
+/**
+ * Extracts visible medicine details from packaging text or image using Gemini 1.5 Flash.
+ * Enforces strict safety bounding: never invents information or gives medical recommendations.
+ *
+ * @param {Object} params
+ * @param {string} [params.packagingText] - Raw text detected on the packaging.
+ * @param {string} [params.imageBase64] - Base64-encoded image data.
+ * @param {string} [params.mimeType='image/jpeg'] - MIME type of the uploaded image.
+ * @returns {Promise<Object>} Extracted metadata with verified source labels and disclaimers.
+ */
+export async function analyzeMedicinePackaging({
+  packagingText,
+  imageBase64,
+  mimeType = 'image/jpeg'
+}) {
   const client = getGeminiClient();
 
   const systemInstructions = `
@@ -57,8 +72,8 @@ STRICT SAFETY RULES YOU MUST ENFORCE:
         systemInstruction: systemInstructions
       });
 
-      let prompt = `Extract all visible medicine packaging details from the provided text or image according to the strict safety schema.`;
-      const parts = [];
+      const prompt = `Extract all visible medicine packaging details from the provided text or image according to the strict safety schema.`;
+      const parts = [{ text: prompt }];
 
       if (packagingText) {
         parts.push({ text: `Package Text to analyze:\n${packagingText}` });
@@ -125,9 +140,12 @@ function safeFallbackPackagingAnalysis(rawText) {
   }
 
   // Look for common packaging patterns in the user-provided text
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
   const firstLine = lines[0] || 'Unknown';
-  
+
   // Extract strength pattern like 500mg, 10mg, 5ml
   const strengthMatch = text.match(/\b\d+(\.\d+)?\s*(mg|mcg|ml|g|iu)\b/i);
   const strength = strengthMatch ? strengthMatch[0] : null;
@@ -147,12 +165,20 @@ function safeFallbackPackagingAnalysis(rawText) {
     medicineNameSource: 'From the packaging',
     activeIngredients: lines[1] ? lines[1] : 'Not specified on packaging',
     strength: strength || 'Not verified - ask your pharmacist or doctor',
-    strengthSource: strength ? 'From the packaging' : 'Not verified - ask your pharmacist or doctor',
-    packagingInstructions: lines.length > 2 ? lines.slice(2).join('; ') : 'Not verified - ask your pharmacist or doctor',
-    instructionsSource: lines.length > 2 ? 'From the packaging' : 'Not verified - ask your pharmacist or doctor',
+    strengthSource: strength
+      ? 'From the packaging'
+      : 'Not verified - ask your pharmacist or doctor',
+    packagingInstructions:
+      lines.length > 2 ? lines.slice(2).join('; ') : 'Not verified - ask your pharmacist or doctor',
+    instructionsSource:
+      lines.length > 2 ? 'From the packaging' : 'Not verified - ask your pharmacist or doctor',
     foodOrLiquidNotice: foodNotice || 'Not verified - ask your pharmacist or doctor',
-    foodNoticeSource: foodNotice ? 'From the packaging' : 'Not verified - ask your pharmacist or doctor',
-    expiryOrBatch: text.match(/(exp|expiry|batch|lot)[\s:]*([a-z0-9\/-]+)/i)?.[0] || 'Not verified - ask your pharmacist or doctor',
+    foodNoticeSource: foodNotice
+      ? 'From the packaging'
+      : 'Not verified - ask your pharmacist or doctor',
+    expiryOrBatch:
+      text.match(/(exp|expiry|batch|lot)[\s:]*([a-z0-9/-]+)/i)?.[0] ||
+      'Not verified - ask your pharmacist or doctor',
     requiresUserConfirmation: true,
     safetyWarning: SAFETY_DISCLAIMER,
     mode: 'Safe Packaging Text Parser'
@@ -162,6 +188,16 @@ function safeFallbackPackagingAnalysis(rawText) {
 /**
  * Deterministic safe template fallback summary when Gemini is unreachable or API key is absent.
  * Produces exactly 3 to 5 plain sentences for family with no medical advice.
+ *
+ * @param {Object} params
+ * @param {string} params.elderName - First name of the elder.
+ * @param {number} params.adherenceRate - Adherence percentage (0-100).
+ * @param {number} params.takenCount - Total doses taken in the week.
+ * @param {number} params.missedCount - Total doses missed in the week.
+ * @param {number} params.totalDue - Total doses scheduled/due in the week.
+ * @param {Object} params.missedByTimeOfDay - Missed dose count keyed by slot ('morning', 'afternoon', 'evening', 'night').
+ * @param {string} [params.mostMissedSlot] - Slot with highest missed count.
+ * @returns {string} Plain-text 3 to 5 sentence summary for family members.
  */
 export function generateTemplateWeeklySummary({
   elderFirstName,
@@ -191,9 +227,7 @@ export function generateTemplateWeeklySummary({
       `Of the ${missedCount} missed doses this week, the most frequent missed time was during the ${mostMissedSlot} hours (${slotCount} missed).`
     );
   } else {
-    sentences.push(
-      `There were ${missedCount} missed doses noted over the course of the week.`
-    );
+    sentences.push(`There were ${missedCount} missed doses noted over the course of the week.`);
   }
 
   // Sentence 3: Reassurance on consistency
@@ -221,6 +255,16 @@ export function generateTemplateWeeklySummary({
  * - Only numbers and first name provided.
  * - Explicitly instructed NOT to give medical advice or suggest changing medicines.
  * - Falls back to generateTemplateWeeklySummary on any error or missing key.
+ *
+ * @param {Object} params
+ * @param {string} params.elderFirstName - First name of the elder.
+ * @param {number} params.adherenceRate - Adherence percentage.
+ * @param {number} params.totalDue - Total doses scheduled.
+ * @param {number} params.takenCount - Doses confirmed taken.
+ * @param {number} params.missedCount - Doses confirmed missed.
+ * @param {Object} params.missedByTimeOfDay - Counts per slot (morning, afternoon, evening, night).
+ * @param {string} params.mostMissedSlot - Most frequently missed slot.
+ * @returns {Promise<string>} 3 to 5 natural language summary sentences.
  */
 export async function generateWeeklyFamilySummaryWithGemini({
   elderFirstName,
@@ -278,7 +322,10 @@ Please write 3 to 5 plain sentences for the family summary. Do not give any medi
         };
       }
     } catch (err) {
-      console.warn('Gemini weekly family summary failed, falling back to safe template:', err.message);
+      console.warn(
+        'Gemini weekly family summary failed, falling back to safe template:',
+        err.message
+      );
     }
   }
 

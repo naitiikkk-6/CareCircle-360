@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { config } from '../config.js';
+import { DOSE_STATUS } from '../constants.js';
 
 /**
  * Generates an HMAC-SHA256 signed, expiring token for one-click dose confirmation from emails.
@@ -11,16 +12,13 @@ import { config } from '../config.js';
  * @param {number} [options.expiresInHours=24]
  * @returns {string} URL-safe signed token
  */
-export function generateOneClickToken({ doseId, circleId, action = 'Taken', expiresInHours = 24 }) {
+export function generateOneClickToken({ doseId, circleId, action = DOSE_STATUS.TAKEN, expiresInHours = 24 }) {
   const expiresAt = Date.now() + expiresInHours * 60 * 60 * 1000;
   const payload = JSON.stringify({ doseId, circleId, action, expiresAt });
   const payloadB64 = Buffer.from(payload).toString('base64url');
 
   const secret = config.appSecret || 'carecircle-default-secret-key-32chars';
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(payloadB64)
-    .digest('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(payloadB64).digest('base64url');
 
   return `${payloadB64}.${signature}`;
 }
@@ -44,10 +42,7 @@ export function verifyOneClickToken(token) {
 
   const [payloadB64, signature] = parts;
   const secret = config.appSecret || 'carecircle-default-secret-key-32chars';
-  const expectedSig = crypto
-    .createHmac('sha256', secret)
-    .update(payloadB64)
-    .digest('base64url');
+  const expectedSig = crypto.createHmac('sha256', secret).update(payloadB64).digest('base64url');
 
   const bufSig = Buffer.from(signature);
   const bufExpected = Buffer.from(expectedSig);
@@ -63,7 +58,7 @@ export function verifyOneClickToken(token) {
       return { valid: false, expired: true, error: 'Token has expired.' };
     }
     return { valid: true, payload };
-  } catch (err) {
+  } catch (_err) {
     return { valid: false, error: 'Malformed token payload.' };
   }
 }

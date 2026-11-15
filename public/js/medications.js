@@ -106,26 +106,30 @@ class MedicationManager {
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    this.medications.forEach(med => {
+    this.medications.forEach((med) => {
       const card = document.createElement('article');
       card.className = `med-card ${med.active ? '' : 'med-inactive'}`;
       card.setAttribute('aria-labelledby', `med-title-${med.id}`);
 
       // Times and Frequency Badges
-      const timesList = (med.times && med.times.length > 0)
-        ? med.times
-        : (med.schedules ? med.schedules.map(s => typeof s === 'string' ? s : s.time) : []);
+      const timesList =
+        med.times && med.times.length > 0
+          ? med.times
+          : med.schedules
+            ? med.schedules.map((s) => (typeof s === 'string' ? s : s.time))
+            : [];
 
-      const timeBadges = timesList.map(t =>
-        `<span class="badge badge-time">⏰ ${t}</span>`
-      ).join(' ');
+      const timeBadges = timesList
+        .map((t) => `<span class="badge badge-time">⏰ ${t}</span>`)
+        .join(' ');
 
       let frequencyText = 'Daily';
       if (med.frequencyType === 'weekdays' && Array.isArray(med.daysOfWeek)) {
-        frequencyText = med.daysOfWeek.map(d => dayNames[d]).join(', ');
+        frequencyText = med.daysOfWeek.map((d) => dayNames[d]).join(', ');
       }
 
-      const sourceBadgeClass = med.sourceLabel === 'From the packaging' ? 'badge-verified' : 'badge-unverified';
+      const sourceBadgeClass =
+        med.sourceLabel === 'From the packaging' ? 'badge-verified' : 'badge-unverified';
 
       card.innerHTML = `
         <div class="med-header">
@@ -150,23 +154,33 @@ class MedicationManager {
             <small>📅 Active: <strong>${med.startDate || 'Ongoing'}</strong> ${med.endDate ? `to <strong>${med.endDate}</strong>` : '(No end date)'}</small>
           </div>
 
-          ${med.instructions ? `
+          ${
+            med.instructions
+              ? `
             <div class="med-user-instructions" role="region" aria-label="Instructions entered by user">
               <span class="instruction-label">✍️ Instructions (Typed by User):</span>
               <p class="instruction-text">${escapeHtml(med.instructions)}</p>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
 
-          ${med.notes ? `
+          ${
+            med.notes
+              ? `
             <div class="med-user-notes">
               <small>Notes: ${escapeHtml(med.notes)}</small>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
 
         <div class="med-footer">
           <small class="med-added-by">Added by: ${escapeHtml(med.addedBy?.name || 'Elder')}</small>
-          ${canManage ? `
+          ${
+            canManage
+              ? `
             <div class="med-card-actions">
               <button class="btn btn-outline btn-sm btn-edit-med" data-med-id="${med.id}" aria-label="Edit ${escapeHtml(med.name)}">
                 ✏️ Edit
@@ -175,9 +189,11 @@ class MedicationManager {
                 🗑️ Delete
               </button>
             </div>
-          ` : `
+          `
+              : `
             <span class="permission-notice">View-only role</span>
-          `}
+          `
+          }
         </div>
       `;
 
@@ -185,14 +201,14 @@ class MedicationManager {
     });
 
     // Attach Edit and Delete Event Handlers
-    container.querySelectorAll('.btn-edit-med').forEach(btn => {
+    container.querySelectorAll('.btn-edit-med').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const medId = e.currentTarget.getAttribute('data-med-id');
         this.openEditModal(medId);
       });
     });
 
-    container.querySelectorAll('.btn-delete-med').forEach(btn => {
+    container.querySelectorAll('.btn-delete-med').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         const medId = e.currentTarget.getAttribute('data-med-id');
         if (confirm('Are you sure you want to remove this medication from the schedule?')) {
@@ -211,7 +227,9 @@ class MedicationManager {
     if (modalTitle) modalTitle.textContent = 'Add Medication & Schedule';
     if (form) {
       form.reset();
-      document.getElementById('med-input-start-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('med-input-start-date').value = new Date()
+        .toISOString()
+        .split('T')[0];
       this.resetTimeInputs(['08:00']);
       document.getElementById('weekdays-selector-fieldset')?.classList.add('hidden');
     }
@@ -223,7 +241,7 @@ class MedicationManager {
   }
 
   openEditModal(medId) {
-    const med = this.medications.find(m => m.id === medId);
+    const med = this.medications.find((m) => m.id === medId);
     if (!med) return;
 
     this.editingMedId = medId;
@@ -235,10 +253,12 @@ class MedicationManager {
     document.getElementById('med-input-name').value = med.name || '';
     document.getElementById('med-input-strength').value = med.strength || med.dosage || '';
     document.getElementById('med-input-form').value = med.form || 'Tablet';
-    document.getElementById('med-input-instructions').value = med.instructions || med.packagingInstructions || '';
+    document.getElementById('med-input-instructions').value =
+      med.instructions || med.packagingInstructions || '';
     document.getElementById('med-input-start-date').value = med.startDate || '';
     document.getElementById('med-input-end-date').value = med.endDate || '';
-    document.getElementById('med-input-source').value = med.sourceLabel || 'Not verified - ask your pharmacist or doctor';
+    document.getElementById('med-input-source').value =
+      med.sourceLabel || 'Not verified - ask your pharmacist or doctor';
     document.getElementById('med-input-notes').value = med.notes || '';
 
     // Frequency
@@ -250,7 +270,7 @@ class MedicationManager {
         weekdaysFieldset?.classList.remove('hidden');
         // Check days
         const days = Array.isArray(med.daysOfWeek) ? med.daysOfWeek : [];
-        [0, 1, 2, 3, 4, 5, 6].forEach(d => {
+        [0, 1, 2, 3, 4, 5, 6].forEach((d) => {
           const cb = document.getElementById(`weekday-cb-${d}`);
           if (cb) cb.checked = days.includes(d);
         });
@@ -260,7 +280,9 @@ class MedicationManager {
     }
 
     // Times
-    const times = med.times || (med.schedules ? med.schedules.map(s => typeof s === 'string' ? s : s.time) : ['08:00']);
+    const times =
+      med.times ||
+      (med.schedules ? med.schedules.map((s) => (typeof s === 'string' ? s : s.time)) : ['08:00']);
     this.resetTimeInputs(times);
 
     if (modal) {
@@ -273,7 +295,7 @@ class MedicationManager {
     const list = document.getElementById('schedule-inputs-list');
     if (!list) return;
     list.innerHTML = '';
-    timesArray.forEach(t => this.addTimeInputRow(t));
+    timesArray.forEach((t) => this.addTimeInputRow(t));
   }
 
   addTimeInputRow(defaultTime = '08:00') {
@@ -311,7 +333,7 @@ class MedicationManager {
     // Collect Weekdays if frequencyType === 'weekdays'
     const daysOfWeek = [];
     if (frequencyType === 'weekdays') {
-      [0, 1, 2, 3, 4, 5, 6].forEach(d => {
+      [0, 1, 2, 3, 4, 5, 6].forEach((d) => {
         const cb = document.getElementById(`weekday-cb-${d}`);
         if (cb && cb.checked) daysOfWeek.push(d);
       });
@@ -323,7 +345,9 @@ class MedicationManager {
 
     // Collect Times
     const timeInputs = document.querySelectorAll('#schedule-inputs-list .input-time');
-    const times = Array.from(timeInputs).map(inp => inp.value.trim()).filter(Boolean);
+    const times = Array.from(timeInputs)
+      .map((inp) => inp.value.trim())
+      .filter(Boolean);
 
     if (times.length === 0) {
       alert('Please enter at least one scheduled intake time.');

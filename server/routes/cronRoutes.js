@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { config } from '../config.js';
 import { runCronReminders } from '../services/schedulerService.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 const router = express.Router();
 
@@ -31,9 +32,12 @@ export function safeCompare(provided, expected) {
  * Accepts x-cron-secret, x-scheduler-secret, or Authorization: Bearer <secret>.
  */
 export function verifyCronSecret(req, res, next) {
-  const provided = req.headers['x-cron-secret'] ||
+  const provided =
+    req.headers['x-cron-secret'] ||
     req.headers['x-scheduler-secret'] ||
-    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7).trim() : null);
+    (req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7).trim()
+      : null);
 
   const expected = config.cronSecret || config.schedulerSecret;
 
@@ -57,8 +61,10 @@ export function verifyCronSecret(req, res, next) {
  *  - Prevents duplicate emails
  *  - Enforces elder alert preferences
  */
-router.post('/reminders', verifyCronSecret, async (req, res) => {
-  try {
+router.post(
+  '/reminders',
+  verifyCronSecret,
+  asyncHandler(async (req, res) => {
     const { circleId, referenceDate, includeWeeklySummary, forceWeeklySummary } = req.body || {};
     const referenceDateObj = referenceDate ? new Date(referenceDate) : null;
 
@@ -74,21 +80,17 @@ router.post('/reminders', verifyCronSecret, async (req, res) => {
       message: 'Cron reminders executed successfully.',
       result
     });
-  } catch (err) {
-    console.error('Cron reminders error:', err);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to execute cron reminders.'
-    });
-  }
-});
+  })
+);
 
 /**
  * POST /api/cron/weekly-summary
  * Dedicated Cloud Scheduler endpoint for weekly digest dispatch.
  */
-router.post('/weekly-summary', verifyCronSecret, async (req, res) => {
-  try {
+router.post(
+  '/weekly-summary',
+  verifyCronSecret,
+  asyncHandler(async (req, res) => {
     const { circleId, referenceDate, forceSend } = req.body || {};
     const referenceDateObj = referenceDate ? new Date(referenceDate) : null;
 
@@ -104,13 +106,7 @@ router.post('/weekly-summary', verifyCronSecret, async (req, res) => {
       message: 'Weekly family summary dispatched.',
       result
     });
-  } catch (err) {
-    console.error('Cron weekly summary error:', err);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to dispatch weekly summary.'
-    });
-  }
-});
+  })
+);
 
 export default router;

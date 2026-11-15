@@ -61,7 +61,8 @@ class MediGuideManager {
 
     if (statusEl) {
       statusEl.classList.remove('hidden');
-      statusEl.textContent = '🔍 Scanning packaging text with MediGuide AI... (Enforcing strict packaging-only safety rules)';
+      statusEl.textContent =
+        '🔍 Scanning packaging text with MediGuide AI... (Enforcing strict packaging-only safety rules)';
     }
 
     try {
@@ -127,9 +128,15 @@ class MediGuideManager {
       const res = await api.post('/api/medications', {
         circleId: circle.activeCircle.id,
         name: data.medicineName,
-        dosage: data.strength !== 'Not verified - ask your pharmacist or doctor' ? data.strength : 'As directed on package',
+        dosage:
+          data.strength !== 'Not verified - ask your pharmacist or doctor'
+            ? data.strength
+            : 'As directed on package',
         packagingInstructions: data.packagingInstructions,
-        sourceLabel: data.medicineNameSource === 'From the packaging' ? 'From the packaging' : 'Not verified - ask your pharmacist or doctor',
+        sourceLabel:
+          data.medicineNameSource === 'From the packaging'
+            ? 'From the packaging'
+            : 'Not verified - ask your pharmacist or doctor',
         notes: `MediGuide packaging scan confirmed. Active ingredients: ${data.activeIngredients || 'None stated'}. Food guidance: ${data.foodOrLiquidNotice}`,
         schedules: [{ time: intakeTime }]
       });
@@ -154,7 +161,7 @@ function fileToBase64(file) {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
+    reader.onerror = (error) => reject(error);
   });
 }
 
