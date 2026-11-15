@@ -8,7 +8,7 @@ ENV PORT=8080
 
 # Install production dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy application source code with correct ownership
 COPY --chown=node:node . .

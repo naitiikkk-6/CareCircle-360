@@ -1,0 +1,48 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "doseLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "circleId", "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "doseLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "circleId", "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "doseLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "circleId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "doseLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "circleId", "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "ASCENDING" },
+        { "fieldPath": "escalationTier", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "circleId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

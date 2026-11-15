@@ -24,11 +24,16 @@ export async function calculateDailyCarePulse({ circle, targetDateStr = null, re
   // Synchronize doses for today and next 7 days
   await generateDoseInstancesForCircle(circle, 7);
 
-  // 1. Fetch today's doses
-  const dosesSnap = await db.collection('doseLogs')
-    .where('circleId', '==', circle.id)
-    .where('scheduledDate', '==', currentDateStr)
-    .get();
+  // 1 & 3. Run independent queries for today's doses and appointments in parallel
+  const [dosesSnap, apptsSnap] = await Promise.all([
+    db.collection('doseLogs')
+      .where('circleId', '==', circle.id)
+      .where('scheduledDate', '==', currentDateStr)
+      .get(),
+    db.collection('appointments')
+      .where('circleId', '==', circle.id)
+      .get()
+  ]);
 
   const todayDoses = [];
   dosesSnap.forEach(d => todayDoses.push(d.data()));
@@ -94,11 +99,7 @@ export async function calculateDailyCarePulse({ circle, targetDateStr = null, re
     };
   }
 
-  // 3. Fetch upcoming appointments (in order)
-  const apptsSnap = await db.collection('appointments')
-    .where('circleId', '==', circle.id)
-    .get();
-
+  // 3. Process upcoming appointments (in order)
   const allAppts = [];
   apptsSnap.forEach(d => allAppts.push(d.data()));
 

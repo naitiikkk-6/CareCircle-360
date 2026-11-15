@@ -122,9 +122,14 @@ export async function runCronReminders({
     const [currH, currM] = currentTimeStr.split(':').map(Number);
     const currTotalMinutes = currH * 60 + currM;
 
-    // Fetch all doseLogs for this circle
+    // Query only doses for yesterday and today with status in ['Pending', 'Missed'] instead of the whole history
+    const yesterdayDateObj = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayDateStr = getLocalDateInTimezone(yesterdayDateObj, timezone);
+
     const dosesSnap = await db.collection('doseLogs')
       .where('circleId', '==', circle.id)
+      .where('scheduledDate', 'in', [yesterdayDateStr, currentDateStr])
+      .where('status', 'in', ['Pending', 'Missed'])
       .get();
 
     for (const doseDoc of dosesSnap.docs) {

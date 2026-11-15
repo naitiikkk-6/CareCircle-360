@@ -57,7 +57,7 @@ export function getLocalDayOfWeekInTimezone(dateObj, timezone = 'Asia/Kolkata') 
 /**
  * Generate and synchronize dose instances for a circle for the current day and the next N days (default 7 days).
  */
-export async function generateDoseInstancesForCircle(circle, daysAhead = 7) {
+export async function generateDoseInstancesForCircle(circle, daysAhead = 7, referenceDate = null) {
   const db = getDb();
   const timezone = circle.timezone || 'Asia/Kolkata';
 
@@ -77,7 +77,22 @@ export async function generateDoseInstancesForCircle(circle, daysAhead = 7) {
 
   const generatedDoses = [];
   const evaluatedDates = [];
-  const now = new Date();
+  const now = referenceDate ? new Date(referenceDate) : new Date();
+
+  // Compute start and end dates for a single range query
+  const startDateStr = getLocalDateInTimezone(now, timezone);
+  const maxDateObj = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+  const endDateStr = getLocalDateInTimezone(maxDateObj, timezone);
+
+  // Single range query for the circle's doses across the evaluated window
+  const existingDosesSnap = await db.collection('doseLogs')
+    .where('circleId', '==', circle.id)
+    .where('scheduledDate', '>=', startDateStr)
+    .where('scheduledDate', '<=', endDateStr)
+    .get();
+
+  const existingDoseIds = new Set();
+  existingDosesSnap.forEach(d => existingDoseIds.add(d.id));
 
   for (let offset = 0; offset <= daysAhead; offset++) {
     const targetDateObj = new Date(now.getTime() + offset * 24 * 60 * 60 * 1000);
@@ -108,10 +123,9 @@ export async function generateDoseInstancesForCircle(circle, daysAhead = 7) {
         if (!timeStr) continue;
         const doseKey = `${circle.id}_${med.id}_${dateStr}_${timeStr}`;
 
-        const doseRef = db.collection('doseLogs').doc(doseKey);
-        const existingDoc = await doseRef.get();
-
-        if (!existingDoc.exists) {
+        // In-memory check using Set instead of per-iteration doseRef.get()
+        if (!existingDoseIds.has(doseKey)) {
+          const doseRef = db.collection('doseLogs').doc(doseKey);
           const newDose = {
             id: doseKey,
             circleId: circle.id,
@@ -133,6 +147,7 @@ export async function generateDoseInstancesForCircle(circle, daysAhead = 7) {
           };
 
           await doseRef.set(newDose);
+          existingDoseIds.add(doseKey);
           generatedDoses.push(newDose);
         }
       }
@@ -276,9 +291,17 @@ export async function calculateAdherenceForRange({
   const currentTimeStr = getLocalTimeInTimezone(now, timezone);
   const currentTotalMinutes = parseTimeToMinutes(currentTimeStr);
 
-  const dosesSnap = await db.collection('doseLogs')
-    .where('circleId', '==', circle.id)
-    .get();
+  let dosesQuery = db.collection('doseLogs')
+    .where('circleId', '==', circle.id);
+
+  if (startDate) {
+    dosesQuery = dosesQuery.where('scheduledDate', '>=', startDate);
+  }
+  if (endDate) {
+    dosesQuery = dosesQuery.where('scheduledDate', '<=', endDate);
+  }
+
+  const dosesSnap = await dosesQuery.get();
 
   let takenCount = 0;
   let missedCount = 0;

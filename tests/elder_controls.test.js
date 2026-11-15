@@ -450,4 +450,52 @@ test('Elder-Centred Controls: Sharing Matrix, Immediate Revocation, Escalation &
       );
     }
   });
+
+  await t.test('6. Dose pre-marked as Missed 90 minutes ago still triggers caretaker escalation', async () => {
+    clearSentEmailsLog();
+    const db = getDb();
+
+    // Now reference time: 11:30 AM
+    const nowTime = new Date();
+    nowTime.setHours(11, 30, 0, 0);
+    const todayStr = nowTime.toISOString().split('T')[0];
+
+    // Dose scheduled for 09:00, marked Missed 90 minutes ago (at 10:00 AM) with Tier 1 sent
+    const preMissedDoseId = `dose_premissed_${Date.now()}`;
+    const missedTime = new Date(nowTime.getTime() - 90 * 60 * 1000); // 10:00 AM
+
+    await db.collection('doseLogs').doc(preMissedDoseId).set({
+      id: preMissedDoseId,
+      circleId,
+      medicineName: 'Atorvastatin Calcium',
+      strength: '20mg',
+      scheduledDate: todayStr,
+      scheduledTime: '09:00',
+      status: 'Missed',
+      missedReason: 'Manually logged as missed by patient',
+      tier1SentAt: missedTime.toISOString(),
+      escalationTier: 1,
+      missedAlertSent: true,
+      missedAlertSentAt: missedTime.toISOString()
+    });
+
+    // Run cron at 11:30 AM (90 mins after Tier 1 -> exceeds 15-minute caretaker delay)
+    const cronRes = await request(app)
+      .post('/api/cron/reminders')
+      .set('x-cron-secret', config.cronSecret)
+      .send({ circleId, referenceDate: nowTime.toISOString() });
+
+    assert.equal(cronRes.status, 200);
+
+    // Verify Caretaker received escalation
+    const sent = getSentEmailsLog();
+    const caretakerMails = sent.filter(e => e.to === caretakerEmail && e.subject.includes('Atorvastatin Calcium'));
+    assert.ok(caretakerMails.length >= 1, 'Caretaker must receive escalation email for dose marked Missed 90m ago');
+    assert.match(caretakerMails[0].text, /Escalation Tier 2/i);
+
+    // Verify dose updated with tier 2 sent in DB
+    const updatedDose = (await db.collection('doseLogs').doc(preMissedDoseId).get()).data();
+    assert.ok(updatedDose.escalationTier >= 2);
+    assert.ok(updatedDose.tier2SentAt);
+  });
 });
