@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareCircle 360 - Elderly Care & Medication Management</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Accessibility Skip Link -->
+  <a href="#app-main" class="skip-link">Skip to main content</a>
+
+  <!-- ARIA Live Announcement Region -->
+  <div id="aria-announcements" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Header & Accessibility Bar -->
+  <header class="app-header" role="banner">
+    <div class="header-top">
+      <div class="brand-section">
+        <span class="brand-icon" aria-hidden="true">💙</span>
+        <div>
+          <h1 class="brand-title">CareCircle 360</h1>
+          <p class="brand-tagline">Elder-Centred Collaborative Healthcare</p>
+        </div>
+      </div>
+
+      <!-- Quick Accessibility Toolbar -->
+      <aside class="a11y-toolbar" aria-label="Accessibility settings">
+        <div class="a11y-control-group">
+          <label for="font-size-select" class="sr-only">Font Size</label>
+          <select id="font-size-select" class="a11y-select" aria-label="Adjust text size">
+            <option value="normal">Normal Text</option>
+            <option value="large">Large Text (A+)</option>
+            <option value="xlarge">Extra Large (A++)</option>
+          </select>
+        </div>
+
+        <button id="toggle-contrast-btn" class="btn btn-a11y" aria-pressed="false" aria-label="Toggle High Contrast Mode">
+          🌓 High Contrast
+        </button>
+
+        <button id="toggle-simple-mode-btn" class="btn btn-a11y btn-simple-toggle" aria-pressed="false" aria-label="Toggle Elder Simple Mode">
+          👵 Elder Simple Mode
+        </button>
+
+        <button id="btn-voice-readout" class="btn btn-a11y btn-voice" aria-label="Read today's care update out loud">
+          🔊 Read Aloud
+        </button>
+
+        <button id="btn-open-a11y-settings" class="btn btn-a11y" aria-label="Open Accessibility & Display Settings">
+          ⚙️ Settings
+        </button>
+      </aside>
+
+      <!-- User Session Controls -->
+      <div id="nav-user-badge" class="user-session hidden">
+        <span id="current-user-name" class="user-name">User</span>
+        <button id="btn-logout" class="btn btn-outline-light btn-sm" aria-label="Log out">Log Out</button>
+      </div>
+    </div>
+
+    <!-- Active Circle Selector Bar -->
+    <div class="header-bottom">
+      <div class="circle-picker-area">
+        <label for="circle-selector" class="picker-label">Active Care Circle:</label>
+        <select id="circle-selector" class="circle-dropdown" aria-label="Select Active Care Circle">
+          <option value="">Loading Circles...</option>
+        </select>
+        <span id="user-role-badge" class="role-badge">ELDER</span>
+      </div>
+
+      <!-- Quick Persona Switcher for Evaluation/Judges -->
+      <div class="persona-switcher-area" aria-label="Demo Persona Switcher">
+        <span class="persona-label">Demo Persona:</span>
+        <button class="btn btn-persona" data-persona="elder" aria-label="Switch to Elder persona">👵 Elder (Owner)</button>
+        <button class="btn btn-persona" data-persona="caretaker" aria-label="Switch to Caretaker persona">🩺 Caretaker</button>
+        <button class="btn btn-persona" data-persona="family" aria-label="Switch to Family persona">👨‍👩‍👦 Family</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Login & Registration Modal (Shown when logged out) -->
+  <section id="auth-modal" class="auth-overlay" aria-labelledby="auth-modal-title" role="dialog" aria-modal="true">
+    <div class="auth-card">
+      <h2 id="auth-modal-title" class="auth-title">Welcome to CareCircle 360</h2>
+      <p class="auth-subtitle">Elderly care and medication management platform with shared circle passcodes.</p>
+
+      <!-- Accessible Error Alert Box -->
+      <div id="auth-error-box" class="auth-error-alert hidden" role="alert" aria-live="assertive"></div>
+
+      <!-- Visible Demo Instructions for Challenge Judges -->
+      <div class="demo-instructions-card" role="region" aria-labelledby="demo-instructions-title">
+        <div class="demo-badge-row">
+          <span class="demo-pill-badge">🏆 EVALUATOR DEMO MODE</span>
+          <span class="simulated-pill-badge">FAKE & SIMULATED DATA</span>
+        </div>
+        <h3 id="demo-instructions-title" class="demo-card-heading">One-Click Evaluator Sign-In</h3>
+        <p class="demo-card-desc">
+          Judges can explore full role permissions and medication tracking without registering. Click any persona button below to enter as that user with the pre-seeded demo care circle:
+        </p>
+
+        <div class="demo-btn-grid">
+          <button class="btn btn-primary btn-demo-touch" data-persona="elder" aria-label="Sign in as Ramesh Sharma, Elder Owner">
+            👵 <strong>Elder Owner</strong> (Ramesh Sharma)
+          </button>
+          <button class="btn btn-secondary btn-demo-touch" data-persona="caretaker" aria-label="Sign in as Sunita Verma, Caretaker">
+            🩺 <strong>Caretaker</strong> (Sunita Verma)
+          </button>
+          <button class="btn btn-outline btn-demo-touch" data-persona="family" aria-label="Sign in as Arun Sharma, Family Member">
+            👨‍👩‍👦 <strong>Family Member</strong> (Arun Sharma)
+          </button>
+        </div>
+
+        <details class="demo-credentials-accordion">
+          <summary class="demo-credentials-toggle">🔑 View manual credentials & circle passcode</summary>
+          <div class="demo-credentials-content">
+            <p><strong>Shared Circle ID:</strong> <code>circle_demo_sharma_360</code></p>
+            <p><strong>Join Passcode:</strong> <code>demoPass123</code></p>
+            <p><strong>Password for all accounts:</strong> <code>demoPass123</code></p>
+            <small class="text-muted">Strict privacy rule: Contains zero real patient data. All medical regimens and vitals are simulated.</small>
+          </div>
+        </details>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Login View -->
+      <div id="auth-login-view">
+        <form id="login-form" class="auth-form" novalidate>
+          <h3>Sign In with Email</h3>
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" class="input-field" required placeholder="you@example.com" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" class="input-field" required placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-success btn-block">Sign In</button>
+        </form>
+        <p class="auth-toggle-text">
+          Don't have an account? <button type="button" id="btn-show-register" class="btn-link">Create Account</button>
+        </p>
+      </div>
+
+      <!-- Register View -->
+      <div id="auth-register-view" class="hidden">
+        <form id="register-form" class="auth-form" novalidate>
+          <h3>Create an Account</h3>
+          <div class="form-group">
+            <label for="register-name">Full Name</label>
+            <input type="text" id="register-name" class="input-field" required placeholder="e.g. Ramesh Sharma" autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label for="register-email">Email Address</label>
+            <input type="email" id="register-email" class="input-field" required placeholder="you@example.com" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password (min 6 characters)</label>
+            <input type="password" id="register-password" class="input-field" required minlength="6" placeholder="••••••••" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="register-role">Primary Role</label>
+            <select id="register-role" class="input-field">
+              <option value="elder">Elder (Owner of Care Circle)</option>
+              <option value="caretaker">Caretaker</option>
+              <option value="family">Family Member</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Register Account</button>
+        </form>
+        <p class="auth-toggle-text">
+          Already have an account? <button type="button" id="btn-show-login" class="btn-link">Sign In</button>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main App Layout -->
+  <main id="app-main" class="main-content hidden" role="main" tabindex="-1">
+
+    <!-- ======================================================== -->
+    <!-- ELDER SIMPLE MODE (Single Screen, Minimal Navigation)    -->
+    <!-- ======================================================== -->
+    <section id="elder-simple-view" class="elder-simple-view hidden" aria-labelledby="simple-mode-title">
+      <!-- Minimal Header Bar -->
+      <div class="simple-view-header">
+        <div>
+          <span class="simple-eyebrow">ELDER SIMPLE MODE</span>
+          <h2 id="simple-mode-title" class="simple-title">Today's Care Routine</h2>
+        </div>
+        <div class="simple-nav-actions">
+          <button id="btn-simple-voice-readout" class="btn btn-simple-action btn-voice" aria-label="Read today's medicine and appointment out loud">
+            🔊 Read Screen Aloud
+          </button>
+          <button id="btn-simple-open-a11y" class="btn btn-simple-action" aria-label="Open Display and Text Size Settings">
+            ⚙️ Display Settings
+          </button>
+          <button id="btn-switch-full-dashboard" class="btn btn-simple-action btn-outline" aria-label="Switch back to Full Standard Dashboard">
+            📊 Full Dashboard
+          </button>
+        </div>
+      </div>
+
+      <!-- Hero: Next Medicine and Time + One Very Large Taken Button -->
+      <div id="simple-hero-card" class="simple-hero-card" role="region" aria-labelledby="simple-next-label">
+        <span id="simple-next-label" class="simple-hero-tag">👉 NEXT MEDICINE TO TAKE</span>
+        <h3 id="simple-next-med-name" class="simple-med-name">Loading Next Medicine...</h3>
+        <p id="simple-next-med-time" class="simple-med-time"></p>
+        <p id="simple-next-med-instructions" class="simple-med-instructions"></p>
+
+        <!-- One Very Large Taken Button -->
+        <button id="simple-btn-take-now" class="btn btn-take-giant" aria-label="I took this medicine">
+          ✅ I TOOK THIS MEDICINE
+        </button>
+      </div>
+
+      <!-- Celebratory Banner when all doses taken -->
+      <div id="simple-all-done-banner" class="simple-all-done-banner hidden" role="status">
+        <span class="all-done-icon" aria-hidden="true">🎉</span>
+        <div>
+          <h3 class="all-done-title">All Medicines Taken for Today!</h3>
+          <p class="all-done-desc">Great job staying on track. Relax and stay well hydrated.</p>
+        </div>
+      </div>
+
+      <!-- Today's List Below -->
+      <div class="simple-section" role="region" aria-labelledby="heading-today-checklist">
+        <h3 id="heading-today-checklist" class="simple-section-title">Today's Medicines Checklist</h3>
+        <ul id="simple-today-checklist" class="simple-checklist" aria-live="polite">
+          <!-- Rendered by simpleMode.js -->
+        </ul>
+      </div>
+
+      <!-- Next Doctor Appointment -->
+      <div class="simple-section" role="region" aria-labelledby="heading-next-appt">
+        <h3 id="heading-next-appt" class="simple-section-title">Next Doctor Appointment</h3>
+        <div id="simple-next-appt-card" class="simple-appt-card">
+          <!-- Rendered by simpleMode.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Active Circle Hero & Daily Care Pulse -->
+    <section class="pulse-hero" aria-labelledby="pulse-hero-title">
+      <div class="pulse-info">
+        <span class="pulse-eyebrow">DAILY CARE PULSE</span>
+        <h2 id="pulse-hero-title" class="circle-heading">
+          <span id="active-circle-title">Sharma Family Care Circle</span>
+          <span class="for-elder">for <span id="active-elder-name">Ramesh Sharma</span></span>
+        </h2>
+        <p id="pulse-status-text" class="pulse-status-badge">Calculating Today's Adherence...</p>
+      </div>
+
+      <div class="pulse-metrics">
+        <div class="adherence-gauge">
+          <div class="gauge-number" id="pulse-adherence-percentage">100%</div>
+          <span class="gauge-label">Adherence</span>
+          <div class="progress-bar-track">
+            <div id="pulse-progress-bar" class="progress-bar-fill progress-high" style="width: 100%;" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+
+        <div class="dose-stat-cards">
+          <div class="stat-card stat-taken">
+            <span class="stat-num" id="pulse-count-taken">0</span>
+            <span class="stat-label">Taken</span>
+          </div>
+          <div class="stat-card stat-pending">
+            <span class="stat-num" id="pulse-count-pending">0</span>
+            <span class="stat-label">Pending</span>
+          </div>
+          <div class="stat-card stat-missed">
+            <span class="stat-num" id="pulse-count-missed">0</span>
+            <span class="stat-label">Missed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Completion Indicator & Plain Language Status -->
+      <div class="pulse-summary-banner">
+        <div class="pulse-indicator-row">
+          <span class="indicator-icon" aria-hidden="true">📊</span>
+          <div class="indicator-text-block">
+            <div id="pulse-completion-text" class="pulse-completion-text" aria-live="polite">0 of 0 doses taken (0% complete)</div>
+            <p id="pulse-plain-message" class="pulse-plain-message">All scheduled medications are on track.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Alerts Section (Never color alone, high visibility text labels) -->
+      <div id="pulse-alerts-container" class="pulse-alerts-container hidden" role="region" aria-label="Active healthcare alerts" aria-live="polite">
+        <!-- Rendered by pulse.js -->
+      </div>
+
+      <!-- Pulse Quick Highlights: Next Upcoming Dose & Upcoming Appointments -->
+      <div class="pulse-highlights-grid">
+        <div class="pulse-highlight-card" id="card-next-dose" role="region" aria-labelledby="heading-next-dose" tabindex="0">
+          <div class="highlight-header">
+            <span class="highlight-badge">[NEXT UPCOMING DOSE]</span>
+            <span class="highlight-icon" aria-hidden="true">⏰</span>
+          </div>
+          <h3 id="heading-next-dose" class="highlight-title">Next Scheduled Dose</h3>
+          <p id="pulse-next-dose-text" class="highlight-main-text">Calculating next dose...</p>
+          <p id="pulse-next-dose-sub" class="highlight-sub-text"></p>
+        </div>
+
+        <div class="pulse-highlight-card" id="card-upcoming-appts" role="region" aria-labelledby="heading-upcoming-appts" tabindex="0">
+          <div class="highlight-header">
+            <span class="highlight-badge">[UPCOMING DOCTOR VISITS]</span>
+            <span class="highlight-icon" aria-hidden="true">🩺</span>
+          </div>
+          <h3 id="heading-upcoming-appts" class="highlight-title">Upcoming Appointments</h3>
+          <ul id="pulse-upcoming-appts-list" class="pulse-appts-quicklist">
+            <li class="empty-quicklist text-muted">No appointments scheduled.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Weekly Family Care Summary (Powered by Gemini with Safe Template Fallback) -->
+      <div class="weekly-summary-card" id="card-weekly-family-summary" role="region" aria-labelledby="heading-weekly-summary">
+        <div class="weekly-header">
+          <div class="weekly-title-group">
+            <span class="weekly-badge">WEEKLY FAMILY SUMMARY</span>
+            <h3 id="heading-weekly-summary" class="weekly-title">Weekly Medication Adherence & Routine Digest</h3>
+          </div>
+          <div class="weekly-pills">
+            <span id="weekly-adherence-pill" class="adherence-pill">100% Adherence</span>
+            <span id="weekly-range-pill" class="range-pill">Past 7 Days</span>
+          </div>
+        </div>
+
+        <p id="weekly-narrative-text" class="weekly-narrative" aria-live="polite">
+          Loading 7-day adherence patterns...
+        </p>
+
+        <div class="weekly-breakdown-row">
+          <span class="breakdown-label">Missed Doses by Time of Day:</span>
+          <div class="slot-chips-grid">
+            <span class="slot-chip" id="chip-slot-morning">🌅 Morning: <strong id="val-slot-morning">0</strong></span>
+            <span class="slot-chip" id="chip-slot-afternoon">☀️ Afternoon: <strong id="val-slot-afternoon">0</strong></span>
+            <span class="slot-chip" id="chip-slot-evening">🌆 Evening: <strong id="val-slot-evening">0</strong></span>
+            <span class="slot-chip" id="chip-slot-night">🌙 Night: <strong id="val-slot-night">0</strong></span>
+          </div>
+        </div>
+
+        <div class="weekly-footer">
+          <small class="text-muted" id="weekly-meta-info">Shared with permitted family members once weekly. No medical advice provided.</small>
+          <button id="btn-dispatch-weekly-email" class="btn btn-outline btn-sm" aria-label="Dispatch weekly family summary email now">
+            📧 Send Weekly Summary to Family
+          </button>
+        </div>
+      </div>
+
+      <!-- Proactive Trigger Actions -->
+      <div class="pulse-actions">
+        <button id="btn-trigger-scheduler" class="btn btn-action" aria-label="Trigger scheduled reminders and missed dose escalations">
+          ⚡ Run Scheduler Check
+        </button>
+        <button id="btn-send-pulse-email" class="btn btn-action" aria-label="Send Daily Care Pulse Email">
+          📧 Dispatch Pulse Email
+        </button>
+        <button id="btn-view-audit-logs" class="btn btn-action btn-outline" aria-label="View recent email notifications log">
+          📋 Notification Logs
+        </button>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav" role="tablist" aria-label="Platform feature sections">
+      <button class="nav-tab active" role="tab" aria-selected="true" data-target="panel-doses" id="tab-doses">
+        💊 Today's Doses
+      </button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-target="panel-meds" id="tab-meds">
+        📋 Medication Schedules
+      </button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-target="panel-appts" id="tab-appts">
+        📅 Doctor Appointments
+      </button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-target="panel-mediguide" id="tab-mediguide">
+        🔍 MediGuide AI Scanner
+      </button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-target="panel-guardian" id="tab-guardian">
+        💓 Health Guardian (Simulated)
+      </button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-target="panel-circle" id="tab-circle">
+        ⚙️ Care Circle & Permissions
+      </button>
+    </nav>
+
+    <!-- TAB 1: Today's Doses -->
+    <section id="panel-doses" class="tab-panel" role="tabpanel" aria-labelledby="tab-doses">
+      <div class="panel-header">
+        <div>
+          <h2>Today's Medication Tracker</h2>
+          <p class="section-desc">Log doses as Taken, Pending or Missed. Automated reminders are sent for upcoming & missed doses.</p>
+        </div>
+
+        <div class="panel-actions">
+          <button id="btn-toggle-dose-history" class="btn btn-outline">📊 View 30-Day History</button>
+        </div>
+      </div>
+
+      <!-- Daily Tracker Container -->
+      <div id="dose-daily-container">
+        <div class="dose-filters-bar mb-3">
+          <label for="dose-date-selector" class="sr-only">Date</label>
+          <input type="date" id="dose-date-selector" class="input-field input-date" aria-label="Select tracking date">
+          <div class="filter-btn-group" role="group" aria-label="Filter doses by status">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="pending">Pending</button>
+            <button class="filter-btn" data-filter="taken">Taken</button>
+            <button class="filter-btn" data-filter="missed">Missed</button>
+          </div>
+          <button id="btn-refresh-doses" class="btn btn-outline btn-sm">↺ Refresh</button>
+        </div>
+
+        <div id="dose-tracker-list" class="dose-cards-container" aria-live="polite">
+          <!-- Rendered by doseTracker.js -->
+        </div>
+      </div>
+
+      <!-- 30-Day History & Missed Doses Container -->
+      <div id="dose-history-container" class="hidden" aria-live="polite">
+        <div class="history-summary-card">
+          <div class="history-adherence-badge">
+            <span class="history-label">30-Day Adherence</span>
+            <div id="history-adherence-pct" class="history-pct-val">100%</div>
+            <small class="text-muted">(Taken / Total Due, future doses ignored)</small>
+          </div>
+
+          <div class="history-stats-grid">
+            <div class="stat-card">
+              <span class="stat-num" id="history-total-due">0</span>
+              <span class="stat-label">Total Due</span>
+            </div>
+            <div class="stat-card stat-taken">
+              <span class="stat-num" id="history-taken-count">0</span>
+              <span class="stat-label">Taken</span>
+            </div>
+            <div class="stat-card stat-missed">
+              <span class="stat-num" id="history-missed-count">0</span>
+              <span class="stat-label">Missed</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="missed-doses-section mt-4">
+          <h3 class="section-title">⚠️ Missed Doses Log (Past 30 Days)</h3>
+          <ul id="history-missed-doses-list" class="missed-doses-list">
+            <!-- Rendered by doseTracker.js -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Medication Schedules -->
+    <section id="panel-meds" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-meds">
+      <div class="panel-header">
+        <div>
+          <h2>Medication Catalog & Schedules</h2>
+          <p class="section-desc">Manage medications, daily/weekday schedules, and view user-entered instructions.</p>
+        </div>
+        <div class="panel-actions">
+          <button id="btn-open-add-med" class="btn btn-primary">➕ Add Medication</button>
+          <button id="btn-open-mediguide-scan" class="btn btn-secondary">🔍 Scan Packaging with MediGuide AI</button>
+        </div>
+      </div>
+
+      <div id="medication-cards-grid" class="cards-grid" aria-live="polite">
+        <!-- Rendered by medications.js -->
+      </div>
+    </section>
+
+    <!-- TAB 3: Doctor Appointments -->
+    <section id="panel-appts" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-appts">
+      <div class="panel-header">
+        <div>
+          <h2>Upcoming Doctor Appointments</h2>
+          <p class="section-desc">Proactive reminders are sent to the Elder and family circle 48 hours prior to visits.</p>
+        </div>
+        <button id="btn-open-add-appt" class="btn btn-primary">➕ Schedule Appointment</button>
+      </div>
+
+      <div id="appointments-list" class="appointments-grid" aria-live="polite">
+        <!-- Rendered by appointments.js -->
+      </div>
+    </section>
+
+    <!-- TAB 4: MediGuide AI Scanner -->
+    <section id="panel-mediguide" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-mediguide">
+      <div class="panel-header">
+        <div>
+          <h2>MediGuide AI Packaging Scanner</h2>
+          <p class="section-desc">Server-side Gemini extraction enforcing strict medical safety rules.</p>
+        </div>
+      </div>
+
+      <div class="safety-banner" role="alert">
+        <span class="safety-icon">🛡️</span>
+        <div>
+          <strong>Strict Safety Protocol:</strong>
+          <p>CareCircle 360 extracts text ONLY from packaging labels. It NEVER identifies medication by appearance/color alone, NEVER invents dosage advice, and requires explicit user confirmation before saving.</p>
+        </div>
+      </div>
+
+      <div class="scan-grid">
+        <form id="form-mediguide-scan" class="scan-input-card">
+          <h3>Scan Package Foil or Label</h3>
+          <div class="form-group">
+            <label for="scan-packaging-text">Option A: Enter Visible Packaging Text</label>
+            <textarea id="scan-packaging-text" class="input-field" rows="4" placeholder="e.g. Paracetamol Tablets IP 500mg&#10;Dosage: As directed by physician&#10;Take with water after meals&#10;Batch: BT409 Exp: 12/2027"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="scan-image-file">Option B: Upload Packaging Photo</label>
+            <input type="file" id="scan-image-file" class="input-field" accept="image/*">
+            <small class="text-muted">Upload a clear photo of the medicine box, blister pack, or label.</small>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Analyze Packaging with Gemini</button>
+          <div id="scan-processing-status" class="status-msg hidden"></div>
+        </form>
+
+        <div id="scan-results-container" class="scan-results-card hidden">
+          <h3>Extracted Packaging Details</h3>
+          <p class="text-muted">Review every field verified against the physical packaging:</p>
+
+          <dl class="scan-dl">
+            <dt>Medicine Name</dt>
+            <dd>
+              <strong id="scan-res-name">-</strong>
+              <span id="scan-res-name-source" class="source-badge badge-unverified">Not verified</span>
+            </dd>
+
+            <dt>Strength / Concentration</dt>
+            <dd>
+              <span id="scan-res-strength">-</span>
+              <span id="scan-res-strength-source" class="source-badge badge-unverified">Not verified</span>
+            </dd>
+
+            <dt>Packaging Instructions</dt>
+            <dd>
+              <p id="scan-res-instructions">-</p>
+              <span id="scan-res-instructions-source" class="source-badge badge-unverified">Not verified</span>
+            </dd>
+
+            <dt>Food & Liquid Guidance</dt>
+            <dd>
+              <p id="scan-res-food">-</p>
+              <span id="scan-res-food-source" class="source-badge badge-unverified">Not verified</span>
+            </dd>
+          </dl>
+
+          <div class="form-group">
+            <label for="scan-intake-time">Scheduled Daily Intake Time</label>
+            <input type="time" id="scan-intake-time" class="input-field" value="08:00">
+          </div>
+
+          <p id="scan-res-safety-warning" class="safety-warning-text"></p>
+
+          <button id="btn-confirm-scan-add" class="btn btn-success btn-block">
+            ✓ I Confirm Details Match Packaging - Save to Schedule
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: Health Guardian (Phase 3 Simulated Vitals) -->
+    <section id="panel-guardian" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-guardian">
+      <div class="panel-header">
+        <div>
+          <h2>Health Guardian - Vital Trends</h2>
+          <p class="section-desc">Visual trends of blood pressure and heart rate for family monitoring.</p>
+        </div>
+        <button id="btn-add-simulated-reading" class="btn btn-outline btn-sm">⚡ Simulate New Reading</button>
+      </div>
+
+      <div class="simulated-banner" role="status">
+        <span class="sim-badge">SIMULATED DATA DEMO</span>
+        <p><strong>Notice:</strong> All vital signs shown in this tab are simulated for demonstration. No real hardware sensor or clinical device is connected.</p>
+      </div>
+
+      <div class="vitals-kpi-grid">
+        <div class="vital-kpi-card">
+          <span class="kpi-icon">❤️</span>
+          <span class="kpi-label">Blood Pressure</span>
+          <div class="kpi-val" id="guardian-bp-val">120/80 mmHg</div>
+          <span class="kpi-sub">Simulated Normal</span>
+        </div>
+        <div class="vital-kpi-card">
+          <span class="kpi-icon">💓</span>
+          <span class="kpi-label">Heart Rate</span>
+          <div class="kpi-val" id="guardian-hr-val">72 bpm</div>
+          <span class="kpi-sub">Simulated Resting</span>
+        </div>
+        <div class="vital-kpi-card">
+          <span class="kpi-icon">🩸</span>
+          <span class="kpi-label">Blood Glucose</span>
+          <div class="kpi-val" id="guardian-bg-val">105 mg/dL</div>
+          <span class="kpi-sub">Simulated Fasting</span>
+        </div>
+        <div class="vital-kpi-card">
+          <span class="kpi-icon">🫁</span>
+          <span class="kpi-label">Blood Oxygen (SpO2)</span>
+          <div class="kpi-val" id="guardian-spo2-val">98%</div>
+          <span class="kpi-sub">Simulated Saturation</span>
+        </div>
+      </div>
+
+      <div class="chart-wrapper">
+        <h3>7-Day Blood Pressure Trend (Systolic mmHg) - Simulated</h3>
+        <div id="guardian-chart-container" class="chart-container">
+          <!-- Rendered by guardian.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: Care Circle & Permissions -->
+    <section id="panel-circle" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-circle">
+      <div class="panel-header">
+        <div>
+          <h2>Care Circle Settings & Member Permissions</h2>
+          <p class="section-desc">The Elder has full authority over who can view and edit their healthcare data.</p>
+        </div>
+        <div class="panel-actions">
+          <button id="btn-open-create-circle" class="btn btn-outline">➕ Create New Circle</button>
+          <button id="btn-open-join-circle" class="btn btn-primary">🔑 Join with Passcode</button>
+        </div>
+      </div>
+
+      <div class="circle-settings-grid">
+        <div class="circle-card">
+          <h3>Circle Information</h3>
+          <p><strong>Circle ID:</strong> <code id="info-circle-id" class="code-badge">circle_default</code></p>
+          <p><strong>Elder (Owner):</strong> <span id="info-elder-display">Ramesh Sharma</span></p>
+          <p class="text-muted"><small>Share the Circle ID and Passcode with caretakers and family to give them access.</small></p>
+
+          <h4 class="mt-4">Registered Circle Members</h4>
+          <ul id="circle-members-list" class="members-list">
+            <!-- Rendered by circle.js -->
+          </ul>
+        </div>
+
+        <div id="elder-permissions-section" class="circle-card">
+          <h3>Elder Authorization Controls</h3>
+          <p class="text-muted">As the circle owner, you decide what caretakers and family can manage:</p>
+
+          <form id="form-circle-permissions">
+            <fieldset class="permission-fieldset">
+              <legend>Caretaker Permissions</legend>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-caretaker-manage-meds" checked>
+                <span>Allow Caretaker to Add / Edit Medications</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-caretaker-log-doses" checked>
+                <span>Allow Caretaker to Log Doses (Taken / Missed)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-caretaker-appts" checked>
+                <span>Allow Caretaker to Schedule Doctor Appointments</span>
+              </label>
+            </fieldset>
+
+            <fieldset class="permission-fieldset mt-3">
+              <legend>Family Member Permissions</legend>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-family-log-doses">
+                <span>Allow Family to Log Doses (Off by default)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-family-manage-meds">
+                <span>Allow Family to Add / Edit Medications (Off by default)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-family-appts">
+                <span>Allow Family to Schedule Appointments (Off by default)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-family-vitals" checked>
+                <span>Allow Family to View Vitals & Care Pulse (On by default)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-family-weekly-summary" checked>
+                <span>Allow Family to Receive Weekly Care Digest Email</span>
+              </label>
+            </fieldset>
+
+            <fieldset class="permission-fieldset mt-3">
+              <legend>Missed Dose Escalation Delays</legend>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="escalation-caretaker-delay">Caretaker Alert Delay (minutes)</label>
+                  <input type="number" id="escalation-caretaker-delay" class="input-field" min="1" max="120" value="15">
+                  <small class="text-muted">Elder is emailed first. Caretaker is notified if still unconfirmed after this delay.</small>
+                </div>
+                <div class="form-group">
+                  <label for="escalation-family-delay">Family Alert Delay (minutes)</label>
+                  <input type="number" id="escalation-family-delay" class="input-field" min="5" max="240" value="30">
+                  <small class="text-muted">Family is emailed if still unconfirmed after this total delay.</small>
+                </div>
+              </div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-primary mt-3">Save Authorization Settings</button>
+          </form>
+
+          <hr class="divider">
+
+          <h3>Update Circle Passcode</h3>
+          <form id="form-change-passcode">
+            <div class="form-group">
+              <label for="new-circle-passcode-field">New Secure Passcode</label>
+              <input type="password" id="new-circle-passcode-field" class="input-field" placeholder="At least 4 characters" minlength="4" required>
+            </div>
+            <button type="submit" class="btn btn-outline-danger">Update Hashed Passcode</button>
+          </form>
+        </div>
+
+        <!-- Activity & Audit Log Card -->
+        <div class="circle-card full-width-card mt-4">
+          <div class="panel-header" style="margin-bottom: 8px;">
+            <div>
+              <h3>Circle Activity & Audit Log</h3>
+              <p class="section-desc">Chronological log of who added medications, logged doses, updated appointments, or changed permissions.</p>
+            </div>
+            <button id="btn-refresh-activity-log" class="btn btn-secondary btn-sm" aria-label="Refresh activity log">🔄 Refresh Log</button>
+          </div>
+          <ul id="circle-activity-log-list" class="activity-log-list" aria-live="polite">
+            <!-- Rendered by circle.js -->
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: Member Sharing Settings & Permissions -->
+  <div id="modal-member-permissions" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="title-member-perms">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <h3 id="title-member-perms">Member Sharing Settings</h3>
+        <button class="modal-close" data-close-modal="modal-member-permissions" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="form-member-permissions">
+        <input type="hidden" id="edit-member-uid">
+        <p id="edit-member-description" class="mb-3 text-muted"></p>
+
+        <fieldset class="permission-fieldset">
+          <legend>What can they see?</legend>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-view-meds">
+            <span>View Medications Catalog</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-view-doses">
+            <span>View Doses & Adherence Tracker</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-view-appts">
+            <span>View Doctor Appointments</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-view-readings">
+            <span>View Simulated Health Readings</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="permission-fieldset mt-3">
+          <legend>Can they edit?</legend>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-edit-meds">
+            <span>Add, Edit, and Delete Medications</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-edit-doses">
+            <span>Log Dose Statuses (Taken / Missed)</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-edit-appts">
+            <span>Schedule & Cancel Doctor Appointments</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="permission-fieldset mt-3">
+          <legend>Email Alerts & Notifications</legend>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-alert-intake">
+            <span>Upcoming Dose Intake Reminders</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-alert-missed">
+            <span>Missed Dose Escalation Alerts</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-alert-appts">
+            <span>Doctor Appointment Reminders</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="mperm-alert-weekly">
+            <span>Weekly Family Care Summary Digest</span>
+          </label>
+        </fieldset>
+
+        <div class="modal-actions mt-4" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" id="btn-modal-revoke-member" class="btn btn-outline-danger">Revoke Member Access</button>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-outline" data-close-modal="modal-member-permissions">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Member Settings</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Add / Edit Medication (Accessible, Large Touch Targets) -->
+  <div id="modal-add-medication" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="title-add-med">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <h3 id="title-add-med">Add Scheduled Medication</h3>
+        <button class="modal-close" data-close-modal="modal-add-medication" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="form-add-medication" class="large-accessible-form" novalidate>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="med-input-name">Medication Name <span class="required-star">*</span></label>
+            <input type="text" id="med-input-name" class="input-field input-lg" required placeholder="e.g. Metformin / Amlodipine" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="med-input-strength">Strength / Concentration <span class="required-star">*</span></label>
+            <input type="text" id="med-input-strength" class="input-field input-lg" required placeholder="e.g. 500mg, 10ml, 1 tablet" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="med-input-form">Dosage Form</label>
+            <select id="med-input-form" class="input-field input-lg">
+              <option value="Tablet" selected>Tablet</option>
+              <option value="Capsule">Capsule</option>
+              <option value="Syrup / Liquid">Syrup / Liquid</option>
+              <option value="Drops">Drops (Eye/Ear)</option>
+              <option value="Inhaler">Inhaler / Respule</option>
+              <option value="Injection">Injection</option>
+              <option value="Patch">Transdermal Patch</option>
+              <option value="Ointment / Cream">Ointment / Cream</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="med-input-frequency">Frequency</label>
+            <select id="med-input-frequency" class="input-field input-lg">
+              <option value="daily" selected>Every Day (Daily)</option>
+              <option value="weekdays">Specific Days of Week</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Weekdays Selector (Shown when frequency is 'weekdays') -->
+        <fieldset id="weekdays-selector-fieldset" class="form-group weekday-fieldset hidden">
+          <legend class="legend-label">Select Intake Days:</legend>
+          <div class="weekday-checkbox-grid">
+            <label class="weekday-chip"><input type="checkbox" id="weekday-cb-1" value="1"><span>Mon</span></label>
+            <label class="weekday-chip"><input type="checkbox" id="weekday-cb-2" value="2"><span>Tue</span></label>
+            <label class="weekday-chip"><input type="checkbox" id="weekday-cb-3" value="3"><span>Wed</span></label>
+            <label class="weekday-chip"><input type="checkbox" id="weekday-cb-4" value="4"><span>Thu</span></label>
+            <label class="weekday-chip"><input type="checkbox" id="weekday-cb-5" value="5"><span>Fri</span></label>
+            <label class="weekday-chip"><input type="checkbox" id="weekday-cb-6" value="6"><span>Sat</span></label>
+            <label class="weekday-chip"><input type="checkbox" id="weekday-cb-0" value="0"><span>Sun</span></label>
+          </div>
+        </fieldset>
+
+        <!-- Intake Times (Multiple Times Supported) -->
+        <div class="form-group">
+          <label class="label-bold">Daily Scheduled Intake Times</label>
+          <div id="schedule-inputs-list" class="time-inputs-container">
+            <div class="schedule-row">
+              <input type="time" class="input-field input-time" value="08:00" required aria-label="Scheduled intake time">
+            </div>
+          </div>
+          <button type="button" id="btn-add-schedule-row" class="btn btn-outline btn-sm mt-2">+ Add Another Time of Day</button>
+        </div>
+
+        <!-- Dates (Start and End) -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="med-input-start-date">Start Date <span class="required-star">*</span></label>
+            <input type="date" id="med-input-start-date" class="input-field" required>
+          </div>
+          <div class="form-group">
+            <label for="med-input-end-date">End Date <small class="text-muted">(Optional - leave blank if ongoing)</small></label>
+            <input type="date" id="med-input-end-date" class="input-field">
+          </div>
+        </div>
+
+        <!-- Instructions (Clearly typed by user) -->
+        <div class="form-group">
+          <label for="med-input-instructions" class="label-highlight">✍️ Instructions (Typed by User)</label>
+          <textarea id="med-input-instructions" class="input-field input-textarea" rows="2" placeholder="e.g. Take after breakfast with warm water. Do not crush."></textarea>
+          <small class="text-muted">These instructions are clearly flagged as entered by the user, not auto-generated advice.</small>
+        </div>
+
+        <!-- Information Source & Notes -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="med-input-source">Information Source (Safety Label)</label>
+            <select id="med-input-source" class="input-field">
+              <option value="From the packaging">From the packaging</option>
+              <option value="Not verified - ask your pharmacist or doctor" selected>Not verified - ask your pharmacist or doctor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="med-input-notes">Personal Notes (Shape/Color for Visual Aid)</label>
+            <input type="text" id="med-input-notes" class="input-field" placeholder="e.g. Small yellow round pill (for personal recognition only)">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg mt-3">Save Medication Schedule</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Create Circle -->
+  <div id="modal-create-circle" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="title-create-circle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="title-create-circle">Create a New Care Circle</h3>
+        <button class="modal-close" data-close-modal="modal-create-circle" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="form-create-circle">
+        <div class="form-group">
+          <label for="new-circle-name">Care Circle Name</label>
+          <input type="text" id="new-circle-name" class="input-field" required placeholder="e.g. Verma Family Care">
+        </div>
+        <div class="form-group">
+          <label for="new-circle-elder">Elder's Full Name</label>
+          <input type="text" id="new-circle-elder" class="input-field" required placeholder="e.g. Nirmala Verma">
+        </div>
+        <div class="form-group">
+          <label for="new-circle-passcode">Join Passcode (Hashed & Rate-Limited)</label>
+          <input type="password" id="new-circle-passcode" class="input-field" required minlength="4" placeholder="Secret join passcode">
+          <small class="text-muted">Passcodes are encrypted with bcrypt on the server and never stored in plain text.</small>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create Care Circle</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Join Circle -->
+  <div id="modal-join-circle" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="title-join-circle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="title-join-circle">Join a Care Circle</h3>
+        <button class="modal-close" data-close-modal="modal-join-circle" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="form-join-circle">
+        <div class="form-group">
+          <label for="join-circle-id">Care Circle ID</label>
+          <input type="text" id="join-circle-id" class="input-field" required placeholder="e.g. circle_xyz...">
+        </div>
+        <div class="form-group">
+          <label for="join-circle-passcode">Passcode</label>
+          <input type="password" id="join-circle-passcode" class="input-field" required placeholder="Enter shared passcode">
+        </div>
+        <div class="form-group">
+          <label for="join-circle-role">Your Role in this Circle</label>
+          <select id="join-circle-role" class="input-field">
+            <option value="caretaker">Caretaker (Manage meds & log doses if permitted)</option>
+            <option value="family" selected>Family Member (View and receive updates)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Join Circle</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Doctor Appointment -->
+  <div id="modal-add-appointment" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="title-add-appt">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="title-add-appt">Schedule Doctor Appointment</h3>
+        <button class="modal-close" data-close-modal="modal-add-appointment" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="form-add-appointment">
+        <div class="form-group">
+          <label for="appt-doctor-name">Doctor Name <span class="required-star">*</span></label>
+          <input type="text" id="appt-doctor-name" class="input-field" required placeholder="e.g. Dr. Rajesh Sharma">
+        </div>
+        <div class="form-group">
+          <label for="appt-purpose">Purpose of Visit <span class="required-star">*</span></label>
+          <input type="text" id="appt-purpose" class="input-field" required placeholder="e.g. Monthly Diabetes Review / Cardiology Checkup">
+        </div>
+        <div class="form-group">
+          <label for="appt-datetime">Date and Time <span class="required-star">*</span></label>
+          <input type="datetime-local" id="appt-datetime" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label for="appt-place">Place (Clinic / Hospital / Address) <span class="required-star">*</span></label>
+          <input type="text" id="appt-place" class="input-field" required placeholder="e.g. City Heart Institute, Sector 14">
+        </div>
+        <div class="form-group">
+          <label for="appt-notes">Notes / Documents to Bring (Optional)</label>
+          <textarea id="appt-notes" class="input-field" rows="2" placeholder="e.g. Bring fasting blood sugar reports and recent ECG."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Save Doctor Appointment</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Edit Doctor Appointment -->
+  <div id="modal-edit-appointment" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="title-edit-appt">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="title-edit-appt">Edit Doctor Appointment</h3>
+        <button class="modal-close" data-close-modal="modal-edit-appointment" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="form-edit-appointment">
+        <input type="hidden" id="edit-appt-id">
+        <div class="form-group">
+          <label for="edit-appt-doctor-name">Doctor Name <span class="required-star">*</span></label>
+          <input type="text" id="edit-appt-doctor-name" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-appt-purpose">Purpose of Visit <span class="required-star">*</span></label>
+          <input type="text" id="edit-appt-purpose" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-appt-datetime">Date and Time <span class="required-star">*</span></label>
+          <input type="datetime-local" id="edit-appt-datetime" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-appt-place">Place (Clinic / Hospital / Address) <span class="required-star">*</span></label>
+          <input type="text" id="edit-appt-place" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-appt-status">Status</label>
+          <select id="edit-appt-status" class="input-field">
+            <option value="Upcoming">Upcoming</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="edit-appt-notes">Notes / Documents to Bring</label>
+          <textarea id="edit-appt-notes" class="input-field" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Update Appointment</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Email Audit Logs -->
+  <div id="modal-audit-logs" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="title-audit-logs">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <h3 id="title-audit-logs">Notification & Email Audit Trail</h3>
+        <button class="modal-close" data-close-modal="modal-audit-logs" aria-label="Close dialog">✕</button>
+      </div>
+      <p class="text-muted">Proactive email reminders sent via Gmail SMTP / simulated scheduler triggers:</p>
+      <ul id="audit-logs-list" class="audit-logs-list">
+        <!-- Rendered by pulse.js -->
+      </ul>
+    </div>
+  </div>
+
+  <!-- MODAL: Accessibility Settings -->
+  <div id="modal-accessibility-settings" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="title-a11y-settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="title-a11y-settings">Accessibility & Display Settings</h3>
+        <button class="modal-close" data-close-modal="modal-accessibility-settings" aria-label="Close dialog">✕</button>
+      </div>
+
+      <form id="form-accessibility-settings">
+        <!-- 1. Text Size (At least 3 levels) -->
+        <div class="form-group">
+          <label for="pref-font-size"><strong>Text Size</strong></label>
+          <select id="pref-font-size" class="input-field input-lg">
+            <option value="normal">Normal Text (100% - Default)</option>
+            <option value="large">Large Text (125% - High Readability)</option>
+            <option value="xlarge">Extra Large Text (150% - Maximum Legibility)</option>
+          </select>
+          <small class="text-muted">Changes the scale of all text and controls dynamically.</small>
+        </div>
+
+        <!-- 2. High Contrast Theme -->
+        <div class="form-group">
+          <label class="checkbox-label" for="pref-high-contrast">
+            <input type="checkbox" id="pref-high-contrast">
+            <span><strong>High Contrast Theme (WCAG AAA)</strong></span>
+          </label>
+          <small class="text-muted">Pure black background with bold yellow and white borders for maximum contrast.</small>
+        </div>
+
+        <!-- 3. Reduced Motion -->
+        <div class="form-group">
+          <label class="checkbox-label" for="pref-reduce-motion">
+            <input type="checkbox" id="pref-reduce-motion">
+            <span><strong>Reduce Motion & Animations</strong></span>
+          </label>
+          <small class="text-muted">Disables transitions and sliding movements for users sensitive to motion.</small>
+        </div>
+
+        <!-- 4. Voice Reading -->
+        <div class="form-group">
+          <label class="checkbox-label" for="pref-voice-enabled">
+            <input type="checkbox" id="pref-voice-enabled">
+            <span><strong>Enable Voice Reading (Screen Reader Aloud)</strong></span>
+          </label>
+          <small class="text-muted">Speaks aloud medicine confirmations and key daily reminders using the Web Speech API.</small>
+          <div class="mt-2">
+            <button type="button" id="btn-test-voice-speech" class="btn btn-outline btn-sm">🔊 Test Voice Speech</button>
+          </div>
+        </div>
+
+        <!-- 5. Default Elder Simple Mode -->
+        <div class="form-group">
+          <label class="checkbox-label" for="pref-elder-simple">
+            <input type="checkbox" id="pref-elder-simple">
+            <span><strong>Always Open in Elder Simple Mode</strong></span>
+          </label>
+          <small class="text-muted">Focuses solely on the next dose and a single large Taken button.</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg mt-3">
+          💾 Save & Synchronize Preferences
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Entry Script (Loads ES Modules) -->
+  <script type="module" src="script.js"></script>
+</body>
+</html>
